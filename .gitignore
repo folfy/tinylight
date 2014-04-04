@@ -1,2 +1,6 @@
 *.TMP
 tiny_software/tinyLight/Debug/
+*.b#1
+*.b#2
+*.s#1
+*.s#2
