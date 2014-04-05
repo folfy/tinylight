@@ -1,7 +1,7 @@
 tinylight
 =========
 
-USB light-pack ambient light client
+USB client for prismatik and tinylight host
 
 Inexpensive USB Light-pack client, based on an Atmel xMega Controller.
 Intended for LED Strips based on the WS2801 IC.<br>
