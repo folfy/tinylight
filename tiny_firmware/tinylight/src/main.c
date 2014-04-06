@@ -172,8 +172,8 @@ int main (void)
 			udc_attach();
 		PORTD_INTCTRL = 1;
 	}
-	if (set.default_mode >= mode_prev_offset)
-		mode_update(set.default_mode - mode_prev_offset);
+	if (set.default_mode & mode_prev)
+		mode_update(set.default_mode & !mode_prev);
 	else
 		mode_update(set.default_mode);	
 		
@@ -206,7 +206,7 @@ int main (void)
 
 void callback_init(void)
 {
-	dma_set_callback(DMA_CHANNEL_LED, DMA_Led_int);
+	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) DMA_Led_int);
 	tc_set_overflow_interrupt_callback(&TCD1,TCD1_OVF_int);
 	adc_set_callback(&ADCA,ADCA_CH3_int);
 	rtc_set_callback(RTC_Alarm);
@@ -230,12 +230,12 @@ void button_update(Bool key_state)
 {
 	if(set.mode==mode_off)
 	{
-		if (set.default_mode >= mode_prev_offset)
+		if (set.default_mode & mode_prev)
 		{
 			if(prev_mode)
 				mode_update(prev_mode);
 			else
-				mode_update(set.default_mode-mode_prev_offset);	
+				mode_update(set.default_mode & !mode_prev);	
 		}
 		else
 			mode_update(set.default_mode);
@@ -302,7 +302,6 @@ void status_led_update(void)
 		if(set.mode&state_on)
 		{
 			blink_en=false;
-			#warning "undefined state: set.stat_LED=0!"
 			if(set.stat_LED)
 			{
 				if(set.mode&state_usb)
@@ -320,6 +319,8 @@ void status_led_update(void)
 					tc_write_cc(&TCD0, TC_CCB, set.stat_LED);
 				}
 			}
+			else
+				status_led_off();
 		}
 		else
 		{
@@ -331,7 +332,6 @@ void status_led_update(void)
 			}
 			else
 			{
-				#warning "undefined state: set.stb_LED=0!"
 				if(set.stb_LED)
 				{
 					blink_en=false;
@@ -341,9 +341,18 @@ void status_led_update(void)
 					tc_write_cc(&TCD0, TC_CCB, set.stb_LED/4);
 					tc_write_cc(&TCD0, TC_CCC, set.stb_LED);
 				}
+				else
+					status_led_off();
 			}
 		}
 	}
+}
+
+void status_led_off(void)
+{
+	tc_disable_cc_channels(&TCD0,TC_CCAEN);
+	tc_disable_cc_channels(&TCD0,TC_CCBEN);
+	tc_disable_cc_channels(&TCD0,TC_CCCEN);	
 }
 
 void status_led_blink(void) //Error blinking
@@ -370,24 +379,14 @@ void read_settings(void)
 void save_settings(void)
 {
 	nvm_eeprom_flush_buffer();
+	uint_fast8_t *values = (uint_fast8_t *) &set;
 	for (uint8_t i = 0; i < sizeof(set); i++) 
 	{
-		nvm_eeprom_load_byte_to_buffer(i, &set);
+		nvm_eeprom_load_byte_to_buffer(i, *values);
+		values++;
 	}
 	nvm_eeprom_atomic_write_page(set_EE_offset);
 }
-
-/*
-void save_settings(void)
-{
-	nvm_eeprom_flush_buffer();
-	const uint8_t *values = (const uint8_t *) &set;
-	for (uint8_t i = 0; i < sizeof(set); ++i) {
-		nvm_eeprom_load_byte_to_buffer(i, *values);
-		++values;
-	}
-	nvm_eeprom_atomic_write_page(set_EE_offset);
-}*/
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~	LED-MODE	~~~~~~~~~~~~~~~~~~~~~~~ */
 
@@ -431,7 +430,7 @@ void gamma_calc(void)
 	for(;;)
 	{
 		uint_fast16_t y=65535;
-		uint_fast16_t root=(nvm_flash_read_byte(&root_10[x]+1)<<8)+nvm_flash_read_byte(&root_10[x]);
+		uint_fast16_t root=(nvm_flash_read_byte( (flash_addr_t) &root_10[x]+1) <<8)+nvm_flash_read_byte( (flash_addr_t) &root_10[x]);
 		
 		for(uint_fast8_t cnt=gamma_pot;cnt;cnt--)
 		y=multi(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
@@ -558,13 +557,13 @@ void status_bar(uint_fast16_t val, uint_fast16_t range, uint_fast8_t anzahl_Leds
 		uint_fast16_t temp = ((k/3)+1) * range;
 		if ( val / temp > 0)
 		{
-			back_buffer[k]=R;		//R
+			back_buffer[k]	=R;		//R
 			back_buffer[k+1]=G;		//G
 			back_buffer[k+2]=B;		//B
 		}
 		else
 		{
-			back_buffer[k]=0;
+			back_buffer[k]	=0;
 			back_buffer[k+1]=0;
 			back_buffer[k+2]=0;
 		}
@@ -582,50 +581,52 @@ void dma_init(void)
 	//single
 	memset(&dmach_conf_single, 0, sizeof(dmach_conf_single));
 
-	dma_channel_set_burst_length(&dmach_conf_single, DMA_CH_BURSTLEN_1BYTE_gc);
-	dma_channel_set_transfer_count(&dmach_conf_single, 3);
-	dma_channel_set_repeats(&dmach_conf_single, set.count);
+	dma_channel_set_burst_length		(&dmach_conf_single, DMA_CH_BURSTLEN_1BYTE_gc);
+	dma_channel_set_transfer_count		(&dmach_conf_single, 3);
+	dma_channel_set_repeats				(&dmach_conf_single, set.count);
 
-	dma_channel_set_src_reload_mode(&dmach_conf_single, DMA_CH_SRCRELOAD_BLOCK_gc);
-	dma_channel_set_src_dir_mode(&dmach_conf_single, DMA_CH_SRCDIR_INC_gc);
-	dma_channel_set_source_address(&dmach_conf_single, (uint16_t)(uintptr_t)front_buffer);
+	dma_channel_set_src_reload_mode		(&dmach_conf_single, DMA_CH_SRCRELOAD_BLOCK_gc);
+	dma_channel_set_src_dir_mode		(&dmach_conf_single, DMA_CH_SRCDIR_INC_gc);
+	dma_channel_set_source_address		(&dmach_conf_single, (uint16_t)(uintptr_t)front_buffer);
 
-	dma_channel_set_dest_reload_mode(&dmach_conf_single, DMA_CH_DESTRELOAD_NONE_gc);
-	dma_channel_set_dest_dir_mode(&dmach_conf_single, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address(&dmach_conf_single, (uint16_t)(uintptr_t)&USARTC0_DATA);
+	dma_channel_set_dest_reload_mode	(&dmach_conf_single, DMA_CH_DESTRELOAD_NONE_gc);
+	dma_channel_set_dest_dir_mode		(&dmach_conf_single, DMA_CH_DESTDIR_FIXED_gc);
+	dma_channel_set_destination_address	(&dmach_conf_single, (uint16_t)(uintptr_t)&USARTC0_DATA);
 
-	dma_channel_set_trigger_source(&dmach_conf_single, DMA_CH_TRIGSRC_USARTC0_DRE_gc);
-	dma_channel_set_single_shot(&dmach_conf_single);
+	dma_channel_set_trigger_source		(&dmach_conf_single, DMA_CH_TRIGSRC_USARTC0_DRE_gc);
+	dma_channel_set_single_shot			(&dmach_conf_single);
 	
-	dma_channel_set_interrupt_level(&dmach_conf_single, DMA_INT_LVL_MED);
+	dma_channel_set_interrupt_level		(&dmach_conf_single, DMA_INT_LVL_MED);
 	
 	//multi
 	memset(&dmach_conf_multi, 0, sizeof(dmach_conf_multi));
 	
-	dma_channel_set_burst_length(&dmach_conf_multi, DMA_CH_BURSTLEN_1BYTE_gc);
-	dma_channel_set_transfer_count(&dmach_conf_multi, set.count*3);
+	dma_channel_set_burst_length		(&dmach_conf_multi, DMA_CH_BURSTLEN_1BYTE_gc);
+	dma_channel_set_transfer_count		(&dmach_conf_multi, set.count*3);
 
-	dma_channel_set_src_reload_mode(&dmach_conf_multi, DMA_CH_SRCRELOAD_BLOCK_gc);
-	dma_channel_set_src_dir_mode(&dmach_conf_multi, DMA_CH_SRCDIR_INC_gc);
-	dma_channel_set_source_address(&dmach_conf_multi, (uint16_t)(uintptr_t)front_buffer);
+	dma_channel_set_src_reload_mode		(&dmach_conf_multi, DMA_CH_SRCRELOAD_BLOCK_gc);
+	dma_channel_set_src_dir_mode		(&dmach_conf_multi, DMA_CH_SRCDIR_INC_gc);
+	dma_channel_set_source_address		(&dmach_conf_multi, (uint16_t)(uintptr_t)front_buffer);
 
-	dma_channel_set_dest_reload_mode(&dmach_conf_multi, DMA_CH_DESTRELOAD_NONE_gc);
-	dma_channel_set_dest_dir_mode(&dmach_conf_multi, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address(&dmach_conf_multi, (uint16_t)(uintptr_t)&USARTC0_DATA);
+	dma_channel_set_dest_reload_mode	(&dmach_conf_multi, DMA_CH_DESTRELOAD_NONE_gc);
+	dma_channel_set_dest_dir_mode		(&dmach_conf_multi, DMA_CH_DESTDIR_FIXED_gc);
+	dma_channel_set_destination_address	(&dmach_conf_multi, (uint16_t)(uintptr_t)&USARTC0_DATA);
 
-	dma_channel_set_trigger_source(&dmach_conf_multi, DMA_CH_TRIGSRC_USARTC0_DRE_gc);
-	dma_channel_set_single_shot(&dmach_conf_multi);
+	dma_channel_set_trigger_source		(&dmach_conf_multi, DMA_CH_TRIGSRC_USARTC0_DRE_gc);
+	dma_channel_set_single_shot			(&dmach_conf_multi);
 	
-	dma_channel_set_interrupt_level(&dmach_conf_multi, DMA_INT_LVL_MED);
+	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);
 };
 
 /* Config DMA in single / multi LED mode */
 void SetupDMA(Bool multi)
 {
 	while (dma_channel_is_busy(DMA_CHANNEL_LED));
-	dma_enable();
-	if (multi)	dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
-	else		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
+		dma_enable();
+	if (multi)	
+		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
+	else		
+		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
 	dma_channel_enable(DMA_CHANNEL_LED);
 }
 

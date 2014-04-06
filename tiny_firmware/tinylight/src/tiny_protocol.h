@@ -52,11 +52,12 @@ const char pre_ada[3+term]	= "Ada";
 
 #define set_EE_offset		0x20
 
-#define state_mask			0b11110000
 #define state_on			0b10000000
 #define state_error			0b01000000
 #define state_usb			0b00100000
 #define state_multi			0b00010000
+
+#define mode_prev			state_error	//	reuse error state bit for default mode = previous mode
 
 #define mode_off			0x00
 #define mode_usb_single		0x00	| state_on					| state_usb
@@ -70,7 +71,5 @@ const char pre_ada[3+term]	= "Ada";
 #define mode_error_OCP		0x02				| state_error
 #define mode_error_SCP		0x03				| state_error
 #define mode_error_internal	0x0F				| state_error
-
-#define mode_prev_offset	0x80
 
 #endif

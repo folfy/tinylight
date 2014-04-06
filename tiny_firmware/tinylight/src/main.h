@@ -48,6 +48,7 @@ void button_update(Bool key_state);
 void mode_update(uint_fast8_t mode);
 
 void status_led_update(void);
+void status_led_off(void);
 void status_led_blink(void);
 
 void read_settings(void);
