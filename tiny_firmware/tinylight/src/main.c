@@ -31,6 +31,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include "mul16x16.h"
 #include "data.h"
 #include "linsin.h"
 
@@ -114,7 +115,7 @@ void RTC_Alarm(uint32_t time)
 
 void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 {
-	const uint_fast8_t mean = 128, mshift = 7;	// 128 =  2^7
+	const uint_fast8_t mean = 128, mshift = 7;	// 128 =  2^7 (+ 2^9 = 2^16 - avoid shifting)
 	static uint_fast8_t adc_cnt = mean;
 	static int_fast32_t  led_voltage_sum = 0, led_current_sum = 0, light_sum = 0, temp_sum = 0;
 
@@ -127,25 +128,25 @@ void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 	if (!adc_cnt)
 	{
 		if(led_voltage_sum>0)
-			measure.voltage = (led_voltage_sum * 3301)		>> (mshift+10);		//2047 / 6.6V/V		* 1		= 0.3102 U/mV  -> 3.224 mV/U * 1024	= 3,301
+			measure.voltage = (led_voltage_sum * 1651)	>> (mshift+9);	//2047 / 6.6V/V		* 1		= 0.3102 U/mV  -> 3.224 mV/U * 512 (2^9)	= 1,651
 		else
 			measure.voltage = 0;
 		led_voltage_sum = 0;
 		
 		if((led_current_sum>0) && set.mode)
-			measure.current = (led_current_sum * 2084)		>> (mshift+10);		//2047 * 0.015V/A	* 16	= 0.4913 U/mA  -> 2.036 mA/U * 1024 = 2,084
+			measure.current = (led_current_sum * 1042)	>> (mshift+9);	//2047 * 0.015V/A	* 16	= 0.4913 U/mA  -> 2.036 mA/U * 512 (2^9)	= 1,042
 		else
 			measure.current = 0;
 		led_current_sum = 0;			
 		
 		if(light_sum>0)
-			measure.light	= light_sum						>> (mshift-1);		//2047 * 0.48mV/Lux * 1/2	= 0.4913 U/Lux -> 2.035 Lux/U (high sensor tolerance - rough value)
+			measure.light	= light_sum					>> (mshift-1);	//2047 * 0.48mV/Lux * 1/2	= 0.4913 U/Lux -> 2.035 Lux/U (high sensor tolerance - rough value)
 		else
 			measure.light	= 0;
 		light_sum = 0;
 										
 		if(temp_sum>0)
-			measure.temp	= ((temp_sum * 3580 / temp_cal) >> mshift) - 2730;	//cal=85C, 0V=0K, temperature = 1/10C
+			measure.temp	= (temp_sum * 3580 / (temp_cal+mean)) - 2730;	//cal=85C, 0V=0K, temperature = 1/10C
 		else
 			measure.temp	= 0;
 		temp_sum = 0;
@@ -389,6 +390,7 @@ void save_settings(void)
 }*/
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~	LED-MODE	~~~~~~~~~~~~~~~~~~~~~~~ */
+
 uint_fast16_t gamma_lut[256];
 
 void gamma_map(void)
@@ -398,13 +400,20 @@ void gamma_map(void)
 	{
 		uint_fast8_t val=back_buffer[n];
 		uint_fast16_t val_corr=gamma_lut[val];
- 		front_buffer[n]=val_corr>>2;
-   		if(val_corr%4>run)				//oversample pwm for increased resolution
-  			front_buffer[n]++;
+		front_buffer[n]=val_corr>>2;
+		if(val_corr%4>run)				//oversample pwm for increased resolution
+			front_buffer[n]++;
 	}
 	run++;
 	if(run==4)
 		run=0;
+}
+
+uint_fast16_t multi(uint_fast16_t a, uint_fast16_t b)
+{
+	uint_fast16_t result;
+	MultiU16X16toH16Round(result,a,b);
+	return result;
 }
 
 void gamma_calc(void)
@@ -421,19 +430,18 @@ void gamma_calc(void)
 	uint_fast8_t x=0;
 	for(;;)
 	{
-		uint_fast16_t x2=x*257;	//a marginal error by shifting (equals div 256) instead of dividing by 255 is left
 		uint_fast16_t y=65535;
 		uint_fast16_t root=(nvm_flash_read_byte(&root_10[x]+1)<<8)+nvm_flash_read_byte(&root_10[x]);
 		
 		for(uint_fast8_t cnt=gamma_pot;cnt;cnt--)
-			y=(y*x2)>>16;
+		y=multi(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
 		for(uint_fast8_t cnt=gamma_dec;cnt;cnt--)
-			y=(y*root)>>16;
+		y=multi(y,root);
 		
-		gamma_lut[x]=((y+32)*1020)>>16;	//improve rounding error by adding 32
+		gamma_lut[x]=multi(y,1020);
 		
 		if(x==255)
-			break;
+		break;
 		x++;
 	}
 }
@@ -502,7 +510,7 @@ void Colorswirl(uint_fast8_t anzahl_Leds)
 		if(sine1>=deg360)
 			sine1-=deg360;
 	}
-};
+}
 
 void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t rgb_buffer[])
 {
@@ -561,7 +569,7 @@ void status_bar(uint_fast16_t val, uint_fast16_t range, uint_fast8_t anzahl_Leds
 			back_buffer[k+2]=0;
 		}
 	}
-};
+}
 
 /*	~~~~~~~~~~~~~~~~~~~~~~~	 DMA/LED	~~~~~~~~~~~~~~~~~~~~~~~ */
 
@@ -619,7 +627,7 @@ void SetupDMA(Bool multi)
 	if (multi)	dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
 	else		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
 	dma_channel_enable(DMA_CHANNEL_LED);
-};
+}
 
 /* Start DMA Transfer */
 void SPI_start(void)
@@ -787,7 +795,7 @@ Bool read_USB(void)
 		default:			return false;
 	}
 	return true;
-};
+}
 
 #define CMD_timeout 0xfffe
 
@@ -802,4 +810,4 @@ uint_fast8_t get_USB_char(void)
 	}
 	timeout_flag = true;
 	return 0;
-};
+}
