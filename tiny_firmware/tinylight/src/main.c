@@ -50,6 +50,7 @@ volatile uint_fast8_t prev_mode=mode_off;
 uint_fast16_t temp_cal = 0;
 
 volatile Bool update_frame = false;
+volatile Bool gamma_update = false;
 volatile Bool usb_data_pending = false;
 volatile Bool mode_select = false;
 volatile Bool blink_en=false;
@@ -191,14 +192,20 @@ int main (void)
 			usb_data_pending = false;
 			while(udi_cdc_is_rx_ready()) udi_cdc_getc();
 		}
-		switch (set.mode)
+		if(set.mode==mode_off)
+			power_down();
+		else
 		{
-			//case mode_light_bar:	status_bar(measure.light, 4000, set.count); SPI_start(); break;
-			case mode_mood_lamp:	Mood_Lamp(set.count); gamma_map(); SPI_start(); break;
-			case mode_rainbow:		Rainbow(set.count); gamma_map(); SPI_start(); break;
-			case mode_colorswirl:	Colorswirl(set.count); gamma_map(); SPI_start(); break;
-			case mode_off:			power_down(); break;	
+			switch (set.mode)
+			{
+				//case mode_light_bar:	status_bar(measure.light, 4000, set.count); SPI_start(); break;
+				case mode_mood_lamp:	Mood_Lamp(set.count); break;
+				case mode_rainbow:		Rainbow(set.count);	break;
+				case mode_colorswirl:	Colorswirl(set.count); break;
+			}
+			frame_update(false);		
 		}
+			
 	}
 }
 
@@ -392,9 +399,34 @@ void save_settings(void)
 
 uint_fast16_t gamma_lut[256];
 
+void frame_update(Bool buffer_update)
+{
+	if(buffer_update)
+	{
+		if(set.gamma)
+			gamma_map();		
+		else
+		{
+			for(uint_fast16_t n=0;n<set.count*3;n++)
+			{
+				front_buffer[n]=back_buffer[n];
+			}
+			SPI_start();
+		}
+	}
+	else if(gamma_update)
+	{
+		gamma_update=false;
+		if(set.gamma)
+			gamma_map();
+	
+	}
+}
+
 void gamma_map(void)
 {
 	static uint_fast8_t run=0;
+	SPI_start(); // avoid delay if mapping takes longer than 500µs
 	for(uint_fast16_t n=0;n<set.count*3;n++)
 	{
 		uint_fast8_t val=back_buffer[n];
@@ -403,8 +435,7 @@ void gamma_map(void)
 		if(val_corr%4>run)				//oversample pwm for increased resolution
 			front_buffer[n]++;
 	}
-	run++;
-	if(run==4)
+	if(++run==4)
 		run=0;
 }
 
@@ -455,6 +486,7 @@ void Mood_Lamp(uint_fast8_t anzahl_Leds)
 		time1=rtc_get_time()+0.010*RTC_cycle;
 		hsv_to_rgb(hue1,&back_buffer[0]);
 		hue1 = (hue1 + 2) % 1536;
+		frame_update(true);
 	}
 }
 
@@ -471,6 +503,7 @@ void Rainbow(uint_fast8_t anzahl_Leds)
 			hue2  += 40;
 		}
 		hue1 = (hue1 + 4) % 1536;
+		frame_update(true);
 	}
 }
 
@@ -508,6 +541,7 @@ void Colorswirl(uint_fast8_t anzahl_Leds)
 		sine1 += rad_03;		// 0.03 rad
 		if(sine1>=deg360)
 			sine1-=deg360;
+		frame_update(true);
 	}
 }
 
@@ -568,6 +602,7 @@ void status_bar(uint_fast16_t val, uint_fast16_t range, uint_fast8_t anzahl_Leds
 			back_buffer[k+2]=0;
 		}
 	}
+	frame_update(true);
 }
 
 /*	~~~~~~~~~~~~~~~~~~~~~~~	 DMA/LED	~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -633,7 +668,7 @@ void SetupDMA(Bool multi)
 /* Start DMA Transfer */
 void SPI_start(void)
 {
-	if (dma_channel_is_busy(DMA_CHANNEL_LED) | TCD1.CTRLA)
+	if (dma_channel_is_busy(DMA_CHANNEL_LED) || TCD1.CTRLA)
 		update_frame = true;
 	else
 		dma_channel_enable(DMA_CHANNEL_LED);
@@ -654,10 +689,16 @@ void TCD1_OVF_int(void)
 void DMA_Led_int(dma_callback_t state)
 {
 	DMA.INTFLAGS = 0xff;
-	if((set.mode & state_on) && !(set.mode & state_multi))	
-		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
+	if(set.mode & state_on)	
+	{
+		if(set.mode & state_multi)
+			dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
+		else
+			dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
+	}
 	tc_restart(&TCD1);
 	tc_set_resolution(&TCD1,500000);
+	gamma_update=true;
 }
 
 /*	~~~~~~~~~~~~~~~~~~~~~~~	 USB		~~~~~~~~~~~~~~~~~~~~~~~ */

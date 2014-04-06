@@ -56,6 +56,7 @@ void save_settings(void);
 
 void status_bar(uint_fast16_t Wert, uint_fast16_t Wert_max, uint_fast8_t anzahl_Leds);
 
+void frame_update(Bool buffer_update);
 void gamma_map(void);
 uint_fast16_t multi(uint_fast16_t a, uint_fast16_t b);
 void gamma_calc(void);
