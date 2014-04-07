@@ -340,14 +340,13 @@ UsedLibrary="C:/Program Files (x86)/EAGLE-6.4.0/lbr/xilinx-xc9.lbr"
 UsedLibrary="C:/Program Files (x86)/EAGLE-6.4.0/lbr/xilinx-xcv.lbr"
 UsedLibrary="C:/Program Files (x86)/EAGLE-6.4.0/lbr/zetex.lbr"
 UsedLibrary="C:/Program Files (x86)/EAGLE-6.4.0/lbr/zilog.lbr"
-UsedLibrary="C:/Program Files (x86)/EAGLE-6.3.0/lbr/supply1.lbr"
 UsedLibrary="tinyLight.lbr"
 UsedLibrary="ohw-logo.lbr"
 
 [Win_1]
 Type="Control Panel"
-Loc="375 165 974 564"
-State=2
+Loc="423 163 1022 562"
+State=1
 Number=0
 
 [Desktop]
