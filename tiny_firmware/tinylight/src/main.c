@@ -833,7 +833,7 @@ Bool read_USB(void)
 								default: return false;
 							}
 							break;
-		case cmd_set_save:	save_settings(); break;
+		case cmd_set_save:	eeprom_write_block(&set, (uint8_t *) set_EE_offset, sizeof(set)); break;
 		default:			return false;
 	}
 	return true;
