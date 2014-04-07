@@ -471,7 +471,7 @@ void gamma_calc(void)
 		gamma_lut[x]=multi(y,1020);
 		
 		if(x==255)
-		break;
+			break;
 		x++;
 	}
 }
@@ -755,11 +755,11 @@ Bool read_USB(void)
 		case cmd_raw_data:	//if(set.mode == mode_single_led)
 		switch(set.mode)
 		{	case mode_usb_single:	udi_cdc_read_buf(&back_buffer,3);
-			SPI_start();
-			break;
+									frame_update(true);
+									break;
 			case mode_usb_multi:	return false;
-			break;
-			default: return false;
+									break;
+			default:				return false;
 
 		}
 		//if (color_buffer[0] == 'A' & color_buffer[1] == 'd' & color_buffer[2] == 'a')
@@ -833,7 +833,7 @@ Bool read_USB(void)
 								default: return false;
 							}
 							break;
-		case cmd_set_save:	save_settings(); break;
+		case cmd_set_save:	eeprom_write_block(&set, (uint8_t *) set_EE_offset, sizeof(set)); break;
 		default:			return false;
 	}
 	return true;
