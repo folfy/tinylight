@@ -193,7 +193,7 @@ int main (void)
 			while(udi_cdc_is_rx_ready()) udi_cdc_getc();
 		}
 		if(set.mode==mode_off)
-			power_down();
+			;//power_down();
 		else
 		{
 			switch (set.mode)
@@ -387,24 +387,31 @@ void save_settings(void)
 {
 	nvm_eeprom_flush_buffer();
 	uint_fast8_t *values = (uint_fast8_t *) &set;
+	nvm_wait_until_ready();
+	eeprom_enable_mapping();
 	for (uint8_t i = 0; i < sizeof(set); i++) 
 	{
-		nvm_eeprom_load_byte_to_buffer(i, *values);
+		uint8_t value = *values;
+		*(uint8_t*)(i + MAPPED_EEPROM_START) = value;
 		values++;
 	}
-	nvm_eeprom_atomic_write_page(set_EE_offset);
+	eeprom_disable_mapping();
+	nvm_eeprom_atomic_write_page(set_EE_offset/EEPROM_PAGE_SIZE);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~	LED-MODE	~~~~~~~~~~~~~~~~~~~~~~~ */
 
-uint_fast16_t gamma_lut[256];
+//uint_fast16_t gamma_lut[256];
 
 void frame_update(Bool buffer_update)
 {
 	if(buffer_update)
 	{
 		if(set.gamma)
-			gamma_map();		
+		{
+			gamma_map();
+			SPI_start();
+		}
 		else
 		{
 			for(uint_fast16_t n=0;n<set.count*3;n++)
@@ -418,15 +425,16 @@ void frame_update(Bool buffer_update)
 	{
 		gamma_update=false;
 		if(set.gamma)
+		{
+			SPI_start(); // avoid delay if mapping takes longer than 500µs
 			gamma_map();
-	
+		}
 	}
 }
 
 void gamma_map(void)
 {
 	static uint_fast8_t run=0;
-	SPI_start(); // avoid delay if mapping takes longer than 500µs
 	for(uint_fast16_t n=0;n<set.count*3;n++)
 	{
 		uint_fast8_t val=back_buffer[n];
@@ -448,6 +456,7 @@ uint_fast16_t multi(uint_fast16_t a, uint_fast16_t b)
 
 void gamma_calc(void)
 {
+	/*
 	//split gamma in full exponentiations and 10th roots
 	uint_fast8_t gamma_dec=set.gamma;
 	uint_fast8_t gamma_pot=0;
@@ -474,6 +483,7 @@ void gamma_calc(void)
 			break;
 		x++;
 	}
+	*/
 }
 
 uint_fast16_t hue1 = 0;
@@ -735,11 +745,11 @@ Bool read_USB(void)
 			if (get_USB_char() != pre_ada[i])
 			return false;
 		}
-		udi_cdc_getc();
-		char temp=udi_cdc_getc();
+		get_USB_char();
+		char temp=get_USB_char();
 		if(temp!=set.count)
 		{
-			set.count=udi_cdc_getc();
+			set.count=get_USB_char();
 			SetupDMA(true);
 		}
 		set.mode=mode_usb_ada;
@@ -833,7 +843,7 @@ Bool read_USB(void)
 								default: return false;
 							}
 							break;
-		case cmd_set_save:	eeprom_write_block(&set, (uint8_t *) set_EE_offset, sizeof(set)); break;
+		case cmd_set_save:	save_settings(); /*eeprom_write_block(&set, (uint8_t *) set_EE_offset, sizeof(set));*/ break;
 		default:			return false;
 	}
 	return true;

@@ -56,3 +56,4 @@ tiny_software/tinyLight/Debug/
 tiny_firmware/tinylight/Debug/
 *.o
 *.d
+Doc/~$protocol.xlsx
