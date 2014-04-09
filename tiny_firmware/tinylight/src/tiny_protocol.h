@@ -50,7 +50,7 @@ const char pre_ada[3+term]	= "Ada";
 #define set_SCP				0x33
 #define set_UVP				0x34
 
-#define set_EE_offset		0x20
+#define set_EE_offset		1    // page wise
 
 #define state_on			0b10000000
 #define state_error			0b01000000

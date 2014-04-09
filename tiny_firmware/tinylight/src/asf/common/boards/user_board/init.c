@@ -13,6 +13,8 @@ static void Vbus_init(void);
 static void led_init(void);
 static void ADC_init(void);
 static void sled_init(void);
+static void IR_init(void);
+
 void usart_init_spi_pull_up(USART_t *usart, const usart_spi_options_t *opt);
 
 void board_init()
@@ -34,6 +36,9 @@ void board_init()
 	ioport_set_pin_mode(BUTTON,IOPORT_MODE_PULLUP|IOPORT_MODE_INVERT_PIN);	// Init button IO
 	rtc_init();		// Init RTC
 	
+	#ifdef IR_in
+		IR_init();
+	#endif
 	/* Init interrupt controller */
 	pmic_init();
 	
@@ -43,6 +48,21 @@ void board_init()
 	tc_write_period(&TCD1,500);
 	
 
+}
+
+/* Init IR */
+static void IR_init(void)
+{
+	ioport_set_pin_dir(IR_in,IOPORT_DIR_INPUT);
+	ioport_set_pin_mode(IR_in,IOPORT_MODE_TOTEM);
+	ioport_set_pin_dir(IR_en,IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(IR_en,true);
+	ioport_set_pin_sense_mode(IR_in,IOPORT_SENSE_FALLING);
+	tc_enable(&TCC0);
+	tc_write_period(&TCC0,60000); //120ms @ 32MHz / 64
+	//tc_set_overflow_interrupt_level(&TCC0, TC_INT_LVL_MED);
+	PORTB_INTCTRL = 1;
+	PORTB_INT0MASK = PIN2_bm;
 }
 
 /* Init VBus detection io */

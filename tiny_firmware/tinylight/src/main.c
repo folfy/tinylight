@@ -6,6 +6,8 @@
  *	PA5:	D_OUT:		Power Mosfet
  *	PA6:	A_IN:		Current-Sensor +
  *	PA7:	A_IN:		Current-Sensor -
+  *	PB1:	D_OUT:		IR_enable
+ *	PB2:	D_IN:		IR-In
  *	PB3:	A_IN:		+5V-Sensor
  *	PC1:	D_OUT:		XCK-Led Stripe
  *	PC3:	D_OUT:		TX-Led Stripe
@@ -20,7 +22,6 @@
  *	TCD0:	PWM Status Led
  *	RTC:	Blink Status Led
  *	TCD1:	DMA-Wait
- *	TCE0:	Taster
  */
 
 #include "main.h"
@@ -155,7 +156,6 @@ void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 		adc_cnt = mean;
 	}
 }
-
 
 int main (void)
 {
@@ -376,11 +376,81 @@ void status_led_blink(void) //Error blinking
 	}	
 }
 
+#define TCC0_cycle 32000000/64
+#define nec_start (0.009+0.0045)*TCC0_cycle
+#define delta 0.0005*TCC0_cycle
+#define nec_one_max 0.003*TCC0_cycle
+#define nec_zero_max 0.002*TCC0_cycle
+
+	
+uint_fast8_t get_ir_byte(uint_fast16_t time)
+{
+	if (time < nec_zero_max) return 0;
+	else if (time < nec_one_max) return 1;
+	
+};
+
+ISR (PORTB_INT0_vect)
+{	
+	static uint_fast8_t addr = 0;
+	static uint_fast8_t addr_not = 0;
+	static uint_fast8_t cmd = 0;
+	static uint_fast8_t cmd_not = 0;
+	
+	static volatile uint8_t ir_state = 0;
+	static uint16_t ir_prev_time = 0;
+	
+	if (ir_state == 0) {tc_write_clock_source(&TCC0,TC_CLKSEL_DIV64_gc);}
+		
+	volatile uint16_t ir_time = tc_read_count(&TCC0) - ir_prev_time;
+	ir_prev_time = tc_read_count(&TCC0);
+	
+	if (ir_state == 1) //Start Bit end
+	{
+		if ((nec_start - delta) < ir_time && ir_time < (nec_start - delta)) 
+		{
+			ir_state = 0;
+			tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+			tc_restart(&TCC0);
+			return;
+		}
+	}
+	if (ir_state > 1 && ir_state < 10) 
+	{
+		addr |= get_ir_byte(ir_time); addr = addr << 1;
+	}
+	if (ir_state > 9 && ir_state < 19)
+	{
+		addr_not |= get_ir_byte(ir_time); addr_not = addr_not << 1;
+	}
+	if (ir_state > 18 && ir_state < 27)
+	{
+		cmd |= get_ir_byte(ir_time); cmd = cmd << 1;
+	}
+	if (ir_state > 26 && ir_state < 35)
+	{
+		cmd_not |= get_ir_byte(ir_time); cmd_not = cmd_not << 1;
+	}
+	if (ir_state > 34) 
+	{
+		if (addr == ~addr_not && cmd == ~cmd_not) 
+		{
+			udi_cdc_putc(cmd);
+		}
+		addr = 0; addr_not = 0; cmd = 0; cmd_not = 0;
+		ir_state = 0;
+		tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+		tc_restart(&TCC0);
+		return;
+	}
+	ir_state++;
+}
+
 /* ~~~~~~~~~~~~~~~~~~~~~~~ 	EEPROM		~~~~~~~~~~~~~~~~~~~~~~~ */
 
 void read_settings(void)
 {
-	nvm_eeprom_read_buffer(set_EE_offset, &set, sizeof(set));
+	nvm_eeprom_read_buffer(set_EE_offset*EEPROM_PAGE_SIZE, &set, sizeof(set));
 };
 
 void save_settings(void)
@@ -396,7 +466,7 @@ void save_settings(void)
 		values++;
 	}
 	eeprom_disable_mapping();
-	nvm_eeprom_atomic_write_page(set_EE_offset/EEPROM_PAGE_SIZE);
+	nvm_eeprom_atomic_write_page(set_EE_offset);
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~	LED-MODE	~~~~~~~~~~~~~~~~~~~~~~~ */
