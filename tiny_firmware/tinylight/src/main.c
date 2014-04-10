@@ -27,7 +27,6 @@
 #include "main.h"
 #include "tiny_protocol.h"
 #include <stdio.h>
-#include <avr/eeprom.h>
 #include <asf.h>
 #include <avr/io.h>
 #include <util/delay.h>
@@ -35,6 +34,7 @@
 #include "mul16x16.h"
 #include "data.h"
 #include "linsin.h"
+#include "IR.h"
 
 // framerate statistics
 uint_fast16_t volatile FPS = 0;
@@ -163,6 +163,7 @@ int main (void)
 	read_settings();
 	dma_init();
 	callback_init();
+
 	temp_cal=adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2; // calibration data is for unsigned mode, which has a positive offset of about 200
 	adc_enable(&ADCA);
 	gamma_calc();
@@ -374,76 +375,6 @@ void status_led_blink(void) //Error blinking
 		tc_enable_cc_channels(&TCD0,TC_CCCEN);
 		blink_state=false;
 	}	
-}
-
-#define TCC0_cycle 32000000/64
-#define nec_start (0.009+0.0045)*TCC0_cycle
-#define delta 0.0005*TCC0_cycle
-#define nec_one_max 0.003*TCC0_cycle
-#define nec_zero_max 0.002*TCC0_cycle
-
-	
-uint_fast8_t get_ir_byte(uint_fast16_t time)
-{
-	if (time < nec_zero_max) return 0;
-	else if (time < nec_one_max) return 1;
-	
-};
-
-ISR (PORTB_INT0_vect)
-{	
-	static uint_fast8_t addr = 0;
-	static uint_fast8_t addr_not = 0;
-	static uint_fast8_t cmd = 0;
-	static uint_fast8_t cmd_not = 0;
-	
-	static volatile uint8_t ir_state = 0;
-	static uint16_t ir_prev_time = 0;
-	
-	if (ir_state == 0) {tc_write_clock_source(&TCC0,TC_CLKSEL_DIV64_gc);}
-		
-	volatile uint16_t ir_time = tc_read_count(&TCC0) - ir_prev_time;
-	ir_prev_time = tc_read_count(&TCC0);
-	
-	if (ir_state == 1) //Start Bit end
-	{
-		if ((nec_start - delta) < ir_time && ir_time < (nec_start - delta)) 
-		{
-			ir_state = 0;
-			tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
-			tc_restart(&TCC0);
-			return;
-		}
-	}
-	if (ir_state > 1 && ir_state < 10) 
-	{
-		addr |= get_ir_byte(ir_time); addr = addr << 1;
-	}
-	if (ir_state > 9 && ir_state < 19)
-	{
-		addr_not |= get_ir_byte(ir_time); addr_not = addr_not << 1;
-	}
-	if (ir_state > 18 && ir_state < 27)
-	{
-		cmd |= get_ir_byte(ir_time); cmd = cmd << 1;
-	}
-	if (ir_state > 26 && ir_state < 35)
-	{
-		cmd_not |= get_ir_byte(ir_time); cmd_not = cmd_not << 1;
-	}
-	if (ir_state > 34) 
-	{
-		if (addr == ~addr_not && cmd == ~cmd_not) 
-		{
-			udi_cdc_putc(cmd);
-		}
-		addr = 0; addr_not = 0; cmd = 0; cmd_not = 0;
-		ir_state = 0;
-		tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
-		tc_restart(&TCC0);
-		return;
-	}
-	ir_state++;
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~ 	EEPROM		~~~~~~~~~~~~~~~~~~~~~~~ */

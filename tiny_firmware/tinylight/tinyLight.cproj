@@ -574,6 +574,12 @@
     <Compile Include="src\data.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\IR.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\IR.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\linsin.c">
       <SubType>compile</SubType>
     </Compile>

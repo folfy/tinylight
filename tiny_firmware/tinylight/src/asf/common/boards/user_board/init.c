@@ -39,6 +39,7 @@ void board_init()
 	#ifdef IR_in
 		IR_init();
 	#endif
+	
 	/* Init interrupt controller */
 	pmic_init();
 	
@@ -46,8 +47,6 @@ void board_init()
 	tc_enable(&TCD1);
 	tc_set_overflow_interrupt_level(&TCD1,TC_INT_LVL_MED);
 	tc_write_period(&TCD1,500);
-	
-
 }
 
 /* Init IR */
@@ -59,11 +58,11 @@ static void IR_init(void)
 	ioport_set_pin_level(IR_en,true);
 	ioport_set_pin_sense_mode(IR_in,IOPORT_SENSE_FALLING);
 	tc_enable(&TCC0);
-	tc_write_period(&TCC0,60000); //120ms @ 32MHz / 64
+	tc_write_period(&TCC0,65000); //130ms @ 32MHz / 64
 	//tc_set_overflow_interrupt_level(&TCC0, TC_INT_LVL_MED);
 	PORTB_INTCTRL = 1;
 	PORTB_INT0MASK = PIN2_bm;
-}
+};
 
 /* Init VBus detection io */
 static void Vbus_init(void)

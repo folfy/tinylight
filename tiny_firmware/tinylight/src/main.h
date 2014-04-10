@@ -75,6 +75,4 @@ void main_cdc_rx_notify(uint8_t port);
 Bool read_USB(void);
 uint_fast8_t get_USB_char(void);
 
-uint_fast8_t get_ir_byte(uint_fast16_t time);
-
 #endif /* MAIN_H_ */
