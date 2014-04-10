@@ -5,6 +5,7 @@
  *  Author: Martin
  */ 
 
+#ifdef IR_avail
 #ifndef IR_C_
 #define IR_C_
 
@@ -72,7 +73,11 @@ ISR (PORTB_INT0_vect)
 	{
 		if (addr == ~addr_not && cmd == ~cmd_not)
 		{
-			udi_cdc_putc(cmd);
+			//udi_cdc_putc(cmd);
+			switch(cmd)
+			{
+				case 26: update_mode(mode_usb_single); backbuffer[0] = 255; backbuffer[1] = 0; backbuffer[2] = 0; frame_update(true); break;
+			}
 		}
 	}
 	if (ir_state > 35)
@@ -91,4 +96,5 @@ ISR (PORTB_INT0_vect)
 
 
 
+#endif
 #endif

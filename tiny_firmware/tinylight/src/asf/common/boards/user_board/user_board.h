@@ -14,6 +14,8 @@
 #ifndef USER_BOARD_H
 #define USER_BOARD_H
 
+//#define IR_avail
+
 #include <conf_board.h>
 
 #define	Sens_Light		IOPORT_CREATE_PIN(PORTA,1)
@@ -25,8 +27,10 @@
 //#define MISC_JP2_P3		IOPORT_CREATE_PIN(PORTB,0)
 //#define MISC_JP2_P2		IOPORT_CREATE_PIN(PORTB,1)
 //#define MISC_JP2_P1		IOPORT_CREATE_PIN(PORTB,2)
+#ifdef IR_avail
 #define IR_en			IOPORT_CREATE_PIN(PORTB,1)
 #define IR_in			IOPORT_CREATE_PIN(PORTB,2)
+#endif
 #define Sens_Uin		IOPORT_CREATE_PIN(PORTB,3)
 #define	LED_CLK			IOPORT_CREATE_PIN(PORTC,1)
 #define	LED_TX			IOPORT_CREATE_PIN(PORTC,3)

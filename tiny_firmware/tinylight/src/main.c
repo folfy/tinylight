@@ -29,12 +29,14 @@
 #include <stdio.h>
 #include <asf.h>
 #include <avr/io.h>
-#include <util/delay.h>
+//#include <util/delay.h>
 #include <avr/interrupt.h>
 #include "mul16x16.h"
 #include "data.h"
 #include "linsin.h"
-#include "IR.h"
+#ifdef IR_in
+	#include "IR.h"
+#endif
 
 // framerate statistics
 uint_fast16_t volatile FPS = 0;
@@ -105,6 +107,7 @@ void RTC_Alarm(uint32_t time)
 	{
 		FPS = count;
 		fps_time = 0;
+		count=0;
 	}
 	
 	if(time > (UINT32_MAX-RTC_cycle*3600*24))	//prevent rtc overflow if there are less than 24h remaining
@@ -194,7 +197,7 @@ int main (void)
 			while(udi_cdc_is_rx_ready()) udi_cdc_getc();
 		}
 		if(set.mode==mode_off)
-			;//power_down();
+			power_down();
 		else
 		{
 			switch (set.mode)
@@ -224,14 +227,12 @@ void callback_init(void)
 
 void power_down(void)
 {
-	sleeping=true;
 	adc_disable(&ADCA); 
 	sysclk_set_prescalers(SYSCLK_PSADIV_2,SYSCLK_PSBCDIV_1_1);
-	while(set.mode==mode_off)
+	while((set.mode==mode_off)&&!ioport_get_pin_level(USB_VBUS))
 		sleepmgr_enter_sleep(); 
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
 	adc_enable(&ADCA);
-	sleeping=false;
 }
 
 void button_update(Bool key_state)
@@ -256,6 +257,7 @@ void button_update(Bool key_state)
 			if (set.mode != mode_off)
 			{
 				mode_select ^= true;
+				status_led_update();
 			}
 		}
 		else
@@ -285,10 +287,12 @@ void mode_update(uint_fast8_t mode)
 		prev_mode=set.mode;
 		set.mode = mode;
 		if (set.mode&state_on)	
-			PORTA_OUTCLR = PIN5_bm;
-		else
-			PORTA_OUTSET = PIN5_bm;
+		{
+			ioport_set_pin_level(MOSFET_en,HIGH);
 			SetupDMA(set.mode&state_multi);
+		}
+		else
+			ioport_set_pin_level(MOSFET_en,LOW);
 		status_led_update();
 	}
 }
@@ -402,17 +406,14 @@ void save_settings(void)
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~	LED-MODE	~~~~~~~~~~~~~~~~~~~~~~~ */
 
-//uint_fast16_t gamma_lut[256];
+uint_fast16_t gamma_lut[256];
 
 void frame_update(Bool buffer_update)
 {
 	if(buffer_update)
 	{
 		if(set.gamma)
-		{
-			gamma_map();
-			SPI_start();
-		}
+			gamma_update=true;
 		else
 		{
 			for(uint_fast16_t n=0;n<set.count*3;n++)
@@ -425,9 +426,9 @@ void frame_update(Bool buffer_update)
 	else if(gamma_update)
 	{
 		gamma_update=false;
-		if(set.gamma)
+		if(set.gamma&&!dma_channel_is_busy(DMA_CHANNEL_LED))
 		{
-			SPI_start(); // avoid delay if mapping takes longer than 500µs
+			SPI_start(); // avoid delay if mapping takes longer than 500µs						
 			gamma_map();
 		}
 	}
@@ -457,7 +458,6 @@ uint_fast16_t multi(uint_fast16_t a, uint_fast16_t b)
 
 void gamma_calc(void)
 {
-	/*
 	//split gamma in full exponentiations and 10th roots
 	uint_fast8_t gamma_dec=set.gamma;
 	uint_fast8_t gamma_pot=0;
@@ -484,7 +484,6 @@ void gamma_calc(void)
 			break;
 		x++;
 	}
-	*/
 }
 
 uint_fast16_t hue1 = 0;
@@ -699,14 +698,8 @@ void TCD1_OVF_int(void)
 
 void DMA_Led_int(dma_callback_t state)
 {
-	DMA.INTFLAGS = 0xff;
-	if(set.mode & state_on)	
-	{
-		if(set.mode & state_multi)
-			dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
-		else
-			dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
-	}
+	if(!(set.mode & state_multi) && (set.mode & state_on))
+		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
 	tc_restart(&TCD1);
 	tc_set_resolution(&TCD1,500000);
 	gamma_update=true;

@@ -5,7 +5,7 @@
  *  Author: Martin
  */ 
 
-
+#ifdef IR_avail
 #ifndef IR_H_
 #define IR_H_
 
@@ -20,3 +20,4 @@ uint_fast8_t get_ir_byte(uint_fast16_t time);
 #define nec_zero_max 0.002*TCC0_cycle
 
 #endif /* IR_H_ */
+#endif

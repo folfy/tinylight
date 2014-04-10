@@ -36,7 +36,7 @@ void board_init()
 	ioport_set_pin_mode(BUTTON,IOPORT_MODE_PULLUP|IOPORT_MODE_INVERT_PIN);	// Init button IO
 	rtc_init();		// Init RTC
 	
-	#ifdef IR_in
+	#ifdef IR_avail
 		IR_init();
 	#endif
 	
@@ -49,6 +49,7 @@ void board_init()
 	tc_write_period(&TCD1,500);
 }
 
+#ifdef IR_avail
 /* Init IR */
 static void IR_init(void)
 {
@@ -63,6 +64,7 @@ static void IR_init(void)
 	PORTB_INTCTRL = 1;
 	PORTB_INT0MASK = PIN2_bm;
 };
+#endif
 
 /* Init VBus detection io */
 static void Vbus_init(void)
@@ -98,7 +100,7 @@ static void led_init(void)
 {
 	static usart_spi_options_t USART_SPI_OPTIONS = {
 		.spimode	= USART_CMODE_MSPI_gc,
-		.baudrate	= 1000000,		//1Mhz Clock
+		.baudrate	= 1600000,		//1.6Mhz Clock
 		.data_order	= 0				//SPI Mode 0
 	};
 	usart_init_spi_pull_up(&USARTC0,&USART_SPI_OPTIONS);
