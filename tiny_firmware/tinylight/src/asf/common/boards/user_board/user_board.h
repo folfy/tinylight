@@ -14,8 +14,6 @@
 #ifndef USER_BOARD_H
 #define USER_BOARD_H
 
-//#define IR_avail
-
 #include <conf_board.h>
 
 #define	Sens_Light		IOPORT_CREATE_PIN(PORTA,1)

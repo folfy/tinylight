@@ -24,6 +24,8 @@
  *	TCD1:	DMA-Wait
  */
 
+#define IR_avail
+
 #include "main.h"
 #include "tiny_protocol.h"
 #include <stdio.h>
@@ -34,9 +36,21 @@
 #include "mul16x16.h"
 #include "data.h"
 #include "linsin.h"
-#ifdef IR_in
-	#include "IR.h"
+
+#ifdef IR_avail
+uint_fast8_t get_ir_bit(uint_fast16_t time);
+static void IR_init(void);
+void TCC0_OVF_int(void);
+void remote_key(uint8_t cmd);
+
+#define TCC0_cycle 32000000/64
+#define nec_start_max 0.015*TCC0_cycle
+#define nec_start_min 0.012*TCC0_cycle
+#define nec_repeat_max 0.012*TCC0_cycle
+#define nec_one_max 0.003*TCC0_cycle
+#define nec_zero_max 0.002*TCC0_cycle
 #endif
+
 
 // framerate statistics
 uint_fast16_t volatile FPS = 0;
@@ -166,7 +180,9 @@ int main (void)
 	read_settings();
 	dma_init();
 	callback_init();
-
+	#ifdef IR_avail
+		IR_init();
+	#endif
 	temp_cal=adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2; // calibration data is for unsigned mode, which has a positive offset of about 200
 	adc_enable(&ADCA);
 	gamma_calc();
@@ -381,6 +397,152 @@ void status_led_blink(void) //Error blinking
 	}	
 }
 
+#ifdef IR_avail
+volatile uint8_t ir_state = 0;
+
+void TCC0_OVF_int(void)
+{
+	ir_state = 0;
+	tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+};
+
+static void IR_init(void)
+{
+	ioport_set_pin_dir(IR_in,IOPORT_DIR_INPUT);
+	ioport_set_pin_mode(IR_in,IOPORT_MODE_TOTEM);
+	ioport_set_pin_dir(IR_en,IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(IR_en,true);
+	ioport_set_pin_sense_mode(IR_in,IOPORT_SENSE_FALLING);
+	tc_enable(&TCC0);
+	tc_write_period(&TCC0,65000); //130ms @ 32MHz / 64
+	tc_set_overflow_interrupt_level(&TCC0, TC_INT_LVL_LO);
+	tc_set_overflow_interrupt_callback(&TCC0,TCC0_OVF_int);
+	PORTB_INTCTRL = 1;
+	PORTB_INT0MASK = PIN2_bm;
+};
+
+uint_fast8_t get_ir_bit(uint_fast16_t time)
+{
+	if (time < nec_zero_max) return 0;
+	else if (time < nec_one_max) return 1;
+};
+
+ISR (PORTB_INT0_vect)
+{
+	static uint_fast8_t addr = 0;
+	static uint_fast8_t addr_not = 0;
+	static uint_fast8_t cmd = 0;
+	static uint_fast8_t cmd_not = 0;
+
+	static uint16_t ir_prev_time = 0;
+	
+	if (ir_state == 0) {tc_restart(&TCC0); tc_write_clock_source(&TCC0,TC_CLKSEL_DIV64_gc);}
+	
+	volatile uint16_t ir_time = tc_read_count(&TCC0) - ir_prev_time;
+	ir_prev_time = tc_read_count(&TCC0);
+	
+	if (ir_state == 1) //Start Bit end
+	{
+		if ((nec_start_min) < ir_time && ir_time < (nec_start_max))
+		{
+			addr = 0; addr_not = 0; cmd = 0; cmd_not = 0;
+		}
+		else
+		{
+			ir_state = 0;
+			tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+			return;
+		}
+	}
+	
+	if (ir_state > 1 && ir_state < 10)
+	{
+		addr = addr << 1;
+		addr |= get_ir_bit(ir_time);
+	}
+	if (ir_state > 9 && ir_state < 18)
+	{
+		addr_not = addr_not << 1;
+		addr_not |= get_ir_bit(ir_time);
+	}
+	if (ir_state > 17 && ir_state < 26)
+	{
+		cmd = cmd << 1;
+		cmd |= get_ir_bit(ir_time);
+	}
+	if (ir_state > 25 && ir_state < 34)
+	{
+		cmd_not = cmd_not << 1;
+		cmd_not |= get_ir_bit(ir_time);
+	}
+	if (ir_state == 34)
+	{
+		addr_not = ~addr_not;
+		cmd_not = ~cmd_not;
+		if ((addr == addr_not) && (cmd == cmd_not))
+		{
+			remote_key(cmd);
+		}
+	}
+	if (ir_state > 35)
+	{
+		if(ir_time < nec_repeat_max)
+		{
+			if ((addr == addr_not) && (cmd == cmd_not))
+			{
+				remote_key(cmd);
+			}
+			ir_state-=2;
+			tc_restart(&TCC0);
+		}
+	}
+	ir_state++;
+};
+
+#define IR_red_key 26
+#define IR_green_key 154
+#define IR_blue_key 162
+#define IR_white_key 34
+#define IR_off_key 2
+
+void remote_key(uint8_t cmd)
+{
+	switch(cmd)
+	{
+		case IR_red_key:	back_buffer[0] = 255;
+							back_buffer[1] = 0;
+							back_buffer[2] = 0;
+							break;
+		case IR_green_key:	back_buffer[0] = 0;
+							back_buffer[1] = 255;
+							back_buffer[2] = 0;
+							break;
+		case IR_blue_key:	back_buffer[0] = 0;
+							back_buffer[1] = 0;
+							back_buffer[2] = 255;
+							break;
+		case IR_off_key:	if(set.mode==mode_off)
+							{
+								if (set.default_mode & mode_prev)
+								{
+									if(prev_mode)
+										mode_update(prev_mode);
+									else
+										mode_update(set.default_mode & !mode_prev);	
+								}
+								else
+									mode_update(set.default_mode);
+							}
+							else
+							mode_update(mode_off);
+							return;
+		default: udi_cdc_putc(cmd);
+	}
+	mode_update(mode_usb_single);
+	frame_update(true);
+};
+
+#endif
 /* ~~~~~~~~~~~~~~~~~~~~~~~ 	EEPROM		~~~~~~~~~~~~~~~~~~~~~~~ */
 
 void read_settings(void)
