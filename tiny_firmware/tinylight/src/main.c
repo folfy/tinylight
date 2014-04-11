@@ -37,20 +37,6 @@
 #include "data.h"
 #include "linsin.h"
 
-#ifdef IR_avail
-uint_fast8_t get_ir_bit(uint_fast16_t time);
-static void IR_init(void);
-void TCC0_OVF_int(void);
-void remote_key(uint8_t cmd);
-
-#define TCC0_cycle 32000000/64
-#define nec_start_max 0.015*TCC0_cycle
-#define nec_start_min 0.012*TCC0_cycle
-#define nec_repeat_max 0.012*TCC0_cycle
-#define nec_one_max 0.003*TCC0_cycle
-#define nec_zero_max 0.002*TCC0_cycle
-#endif
-
 
 // framerate statistics
 uint_fast16_t volatile FPS = 0;
@@ -80,7 +66,9 @@ volatile adc_sample measure={0,0,0,0};
 void RTC_Alarm(uint32_t time);
 void TCD1_OVF_int(void);
 void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
-
+#ifdef IR_avail
+	static void IR_init(void);
+#endif
 void DMA_Led_int(dma_callback_t state);
 
 //Status_LED, FPS count
@@ -243,12 +231,14 @@ void callback_init(void)
 
 void power_down(void)
 {
+	sleeping = true;
 	adc_disable(&ADCA); 
 	sysclk_set_prescalers(SYSCLK_PSADIV_2,SYSCLK_PSBCDIV_1_1);
 	while((set.mode==mode_off)&&!ioport_get_pin_level(USB_VBUS))
 		sleepmgr_enter_sleep(); 
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
 	adc_enable(&ADCA);
+	sleeping = false;
 }
 
 void button_update(Bool key_state)
@@ -398,6 +388,74 @@ void status_led_blink(void) //Error blinking
 }
 
 #ifdef IR_avail
+
+uint_fast8_t get_ir_bit(uint_fast16_t time);
+void TCC0_OVF_int(void);
+void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat);
+
+#define TCC0_cycle 32000000/64
+#define nec_start_max 0.015*TCC0_cycle
+#define nec_start_min 0.012*TCC0_cycle
+#define nec_repeat_max 0.012*TCC0_cycle
+#define nec_one_max 0.003*TCC0_cycle
+#define nec_zero_max 0.002*TCC0_cycle
+
+#define IR_addr 0
+
+#define IR_off_key 2
+#define IR_play_pause_key 130
+#define IR_brightness_plus_key 58
+#define IR_brightness_minus_key 186
+
+#define IR_red_color_key 26
+#define IR_dark_orange_color_key 42
+#define IR_orange_color_key 10
+#define IR_dark_yellow_color_key 56
+#define IR_yellow_color_key 24
+
+#define IR_green_color_key 154
+#define IR_light_green_color_key 170
+#define IR_bluegreen_color_key 138
+#define IR_cyan_color_key 184
+#define IR_petrol_color_key 152
+
+#define IR_blue_color_key 162
+#define IR_cobalt_blue_color_key 146
+#define IR_blueviolet_color_key 178
+#define IR_violet_color_key 120
+#define IR_pink_color_key 88
+
+#define IR_white_color_key 34
+#define IR_rosa_color_key 18
+#define IR_rosa_2_color_key 50
+#define IR_skyblue_color_key 248
+#define IR_skyblue_2_color_key 216
+
+#define IR_red_plus_key 40
+#define IR_red_minus_key 8
+#define IR_green_plus_key 168
+#define IR_green_minus_key 136
+#define IR_blue_plus_key 104
+#define IR_blue_minus_key 72
+
+#define IR_DIY1_key 48
+#define IR_DIY2_key 176
+#define IR_DIY3_key 112
+#define IR_DIY4_key 16
+#define IR_DIY5_key 144
+#define IR_DIY6_key 80
+
+#define IR_jump3_key 32
+#define IR_jump7_key 160
+#define IR_fade3_key 96
+#define IR_fade7_key 224
+
+#define IR_flash_key 208
+#define IR_auto_key 240
+#define IR_speed_plus 232
+#define IR_speed_minus 200
+
+
 volatile uint8_t ir_state = 0;
 
 void TCC0_OVF_int(void)
@@ -414,7 +472,7 @@ static void IR_init(void)
 	ioport_set_pin_level(IR_en,true);
 	ioport_set_pin_sense_mode(IR_in,IOPORT_SENSE_FALLING);
 	tc_enable(&TCC0);
-	tc_write_period(&TCC0,65000); //130ms @ 32MHz / 64
+	tc_write_period(&TCC0,65534); //131ms @ 32MHz / 64
 	tc_set_overflow_interrupt_level(&TCC0, TC_INT_LVL_LO);
 	tc_set_overflow_interrupt_callback(&TCC0,TCC0_OVF_int);
 	PORTB_INTCTRL = 1;
@@ -425,10 +483,15 @@ uint_fast8_t get_ir_bit(uint_fast16_t time)
 {
 	if (time < nec_zero_max) return 0;
 	else if (time < nec_one_max) return 1;
+	return 0xff; //ERROR
 };
 
 ISR (PORTB_INT0_vect)
 {
+	if (sleeping)
+	{
+		sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
+	}
 	static uint_fast8_t addr = 0;
 	static uint_fast8_t addr_not = 0;
 	static uint_fast8_t cmd = 0;
@@ -475,23 +538,26 @@ ISR (PORTB_INT0_vect)
 		cmd_not = cmd_not << 1;
 		cmd_not |= get_ir_bit(ir_time);
 	}
-	if (ir_state == 34)
+	if (ir_state == 33)
 	{
 		addr_not = ~addr_not;
 		cmd_not = ~cmd_not;
 		if ((addr == addr_not) && (cmd == cmd_not))
 		{
-			remote_key(cmd);
+			handle_remote_key(addr, cmd, false);
 		}
+		else
+		{
+			ir_state = 0;
+			tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+			return;
+		}		
 	}
-	if (ir_state > 35)
+	if (ir_state > 34)
 	{
 		if(ir_time < nec_repeat_max)
 		{
-			if ((addr == addr_not) && (cmd == cmd_not))
-			{
-				remote_key(cmd);
-			}
+			handle_remote_key(addr, cmd, true);
 			ir_state-=2;
 			tc_restart(&TCC0);
 		}
@@ -499,49 +565,56 @@ ISR (PORTB_INT0_vect)
 	ir_state++;
 };
 
-#define IR_red_key 26
-#define IR_green_key 154
-#define IR_blue_key 162
-#define IR_white_key 34
-#define IR_off_key 2
-
-void remote_key(uint8_t cmd)
+void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 {
-	switch(cmd)
+	uint_fast8_t new_mode = mode_usb_single;
+	if (addr != IR_addr) {return;}
+	if(!repeat)
 	{
-		case IR_red_key:	back_buffer[0] = 255;
-							back_buffer[1] = 0;
-							back_buffer[2] = 0;
-							break;
-		case IR_green_key:	back_buffer[0] = 0;
-							back_buffer[1] = 255;
-							back_buffer[2] = 0;
-							break;
-		case IR_blue_key:	back_buffer[0] = 0;
-							back_buffer[1] = 0;
-							back_buffer[2] = 255;
-							break;
-		case IR_off_key:	if(set.mode==mode_off)
-							{
-								if (set.default_mode & mode_prev)
+			switch(cmd)
+			{
+			case IR_red_color_key:		back_buffer[0] = 255;	back_buffer[1] = 0;		back_buffer[2] = 0;		break;
+			case IR_green_color_key:	back_buffer[0] = 0;		back_buffer[1] = 255;	back_buffer[2] = 0;		break;
+			case IR_blue_color_key:		back_buffer[0] = 0;		back_buffer[1] = 0;		back_buffer[2] = 255;	break;
+			case IR_white_color_key:	back_buffer[0] = 255;	back_buffer[1] = 255;	back_buffer[2] = 255;	break;
+			case IR_jump7_key:			new_mode = mode_rainbow; break;
+			case IR_fade3_key:			new_mode = mode_mood_lamp; break;
+			case IR_fade7_key:			new_mode = mode_colorswirl; break;
+			case IR_off_key:	if(set.mode==mode_off)
 								{
-									if(prev_mode)
-										mode_update(prev_mode);
+									if (set.default_mode & mode_prev)
+									{
+										if(prev_mode) { new_mode = prev_mode;}
+										else		  { new_mode = set.default_mode & !mode_prev;}
+									}
 									else
-										mode_update(set.default_mode & !mode_prev);	
+									{
+										new_mode = set.default_mode;
+									}
+								
 								}
 								else
-									mode_update(set.default_mode);
-							}
-							else
-							mode_update(mode_off);
-							return;
-		default: udi_cdc_putc(cmd);
+								{
+									new_mode = mode_off;
+								}
+								break;
+			//default: udi_cdc_putc(cmd);
+			}
 	}
-	mode_update(mode_usb_single);
-	frame_update(true);
+	switch(cmd)
+	{
+		case IR_red_plus_key:		if (back_buffer[0] < 255)	back_buffer[0]++;	break;
+		case IR_red_minus_key:		if (back_buffer[0] > 0)		back_buffer[0]--;	break;
+		case IR_green_plus_key:		if (back_buffer[1] < 255)	back_buffer[1]++;	break;
+		case IR_green_minus_key:	if (back_buffer[1] > 0)		back_buffer[1]--;	break;	
+		case IR_blue_plus_key:		if (back_buffer[2] < 255)	back_buffer[2]++;	break;
+		case IR_blue_minus_key:		if (back_buffer[2] > 0)		back_buffer[2]--;	break;
+		//default: udi_cdc_putc(cmd);
+	}	
+	
+	mode_update(new_mode);
+	if (new_mode == mode_usb_single)	frame_update(true);
 };
-
 #endif
 /* ~~~~~~~~~~~~~~~~~~~~~~~ 	EEPROM		~~~~~~~~~~~~~~~~~~~~~~~ */
 
