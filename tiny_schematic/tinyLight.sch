@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="6.4">
+<eagle version="6.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -7556,10 +7556,10 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <part name="P+9" library="tinyLight" deviceset="VBUS" device=""/>
 <part name="S1" library="tinyLight" deviceset="SPST_PB" device=""/>
 <part name="C9" library="rcl" deviceset="C-EU" device="C2012" value="100nF"/>
-<part name="SV1" library="con-lstb" deviceset="MA04-2" device=""/>
-<part name="SV2" library="con-lstb" deviceset="MA03-1" device=""/>
+<part name="SV1" library="con-lstb" deviceset="MA04-2" device="" value="RF/BT"/>
+<part name="SV2" library="con-lstb" deviceset="MA03-1" device="" value="UART"/>
 <part name="GND16" library="supply1" deviceset="GND" device=""/>
-<part name="SV3" library="con-lstb" deviceset="MA03-1" device=""/>
+<part name="SV3" library="con-lstb" deviceset="MA03-1" device="" value="IR"/>
 <part name="GND17" library="supply1" deviceset="GND" device=""/>
 </parts>
 <sheets>
@@ -7637,8 +7637,8 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <instance part="S1" gate="G$1" x="96.52" y="5.08" rot="MR0"/>
 <instance part="C9" gate="G$1" x="25.4" y="43.18"/>
 <instance part="SV1" gate="G$1" x="48.26" y="25.4"/>
-<instance part="SV2" gate="G$1" x="185.42" y="50.8" rot="R180"/>
-<instance part="GND16" gate="1" x="175.26" y="45.72"/>
+<instance part="SV2" gate="G$1" x="187.96" y="48.26" rot="R180"/>
+<instance part="GND16" gate="1" x="177.8" y="43.18"/>
 <instance part="SV3" gate="G$1" x="81.28" y="58.42"/>
 <instance part="GND17" gate="1" x="91.44" y="53.34"/>
 </instances>
@@ -7816,7 +7816,7 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <segment>
 <pinref part="GND16" gate="1" pin="GND"/>
 <pinref part="SV2" gate="G$1" pin="3"/>
-<wire x1="175.26" y1="48.26" x2="177.8" y2="48.26" width="0.1524" layer="91"/>
+<wire x1="177.8" y1="45.72" x2="180.34" y2="45.72" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="SV3" gate="G$1" pin="1"/>
@@ -8224,17 +8224,8 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <net name="N$8" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PC2(OC0C/RXD0)"/>
-<wire x1="104.14" y1="38.1" x2="60.96" y2="38.1" width="0.1524" layer="91"/>
-<wire x1="60.96" y1="38.1" x2="60.96" y2="22.86" width="0.1524" layer="91"/>
-<pinref part="SV1" gate="G$1" pin="3"/>
-<wire x1="55.88" y1="22.86" x2="60.96" y2="22.86" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$9" class="0">
-<segment>
-<pinref part="IC2" gate="G$1" pin="PC0(OC0A/SDA)"/>
-<wire x1="104.14" y1="43.18" x2="33.02" y2="43.18" width="0.1524" layer="91"/>
-<wire x1="33.02" y1="43.18" x2="33.02" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="38.1" x2="33.02" y2="38.1" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="38.1" x2="33.02" y2="22.86" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="4"/>
 <wire x1="33.02" y1="22.86" x2="40.64" y2="22.86" width="0.1524" layer="91"/>
 </segment>
@@ -8250,19 +8241,24 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <net name="N$10" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PE3(OC0D/TXD0)"/>
-<wire x1="165.1" y1="48.26" x2="172.72" y2="48.26" width="0.1524" layer="91"/>
-<wire x1="172.72" y1="48.26" x2="172.72" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="165.1" y1="48.26" x2="180.34" y2="48.26" width="0.1524" layer="91"/>
 <pinref part="SV2" gate="G$1" pin="2"/>
-<wire x1="172.72" y1="50.8" x2="177.8" y2="50.8" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$11" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PE2(OC0C/RXD0)"/>
-<wire x1="165.1" y1="50.8" x2="170.18" y2="50.8" width="0.1524" layer="91"/>
-<wire x1="170.18" y1="50.8" x2="170.18" y2="53.34" width="0.1524" layer="91"/>
+<wire x1="165.1" y1="50.8" x2="180.34" y2="50.8" width="0.1524" layer="91"/>
 <pinref part="SV2" gate="G$1" pin="1"/>
-<wire x1="170.18" y1="53.34" x2="177.8" y2="53.34" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$1" class="0">
+<segment>
+<pinref part="IC2" gate="G$1" pin="PC0(OC0A/SDA)"/>
+<wire x1="104.14" y1="43.18" x2="58.42" y2="43.18" width="0.1524" layer="91"/>
+<wire x1="58.42" y1="43.18" x2="58.42" y2="22.86" width="0.1524" layer="91"/>
+<pinref part="SV1" gate="G$1" pin="3"/>
+<wire x1="58.42" y1="22.86" x2="55.88" y2="22.86" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
