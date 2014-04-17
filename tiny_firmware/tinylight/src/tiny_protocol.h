@@ -72,4 +72,11 @@ const char pre_ada[3+term]	= "Ada";
 #define mode_error_SCP		(	0x03				| state_error								)
 #define mode_error_internal	(	0x0F				| state_error								)
 
+#define timeout_vbus		0x00
+#define	timeout_off			0xFF
+#define alpha_auto			0x00
+#define ocp_off				0x00
+#define	scp_off				0x00
+#define uvp_off				0x00
+
 #endif

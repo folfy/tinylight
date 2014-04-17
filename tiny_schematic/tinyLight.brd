@@ -5265,7 +5265,7 @@ design rules under a new name.</description>
 <element name="C7" library="rcl" package="C2012" value="100nF" x="24.1" y="22.5" rot="R90"/>
 <element name="S1" library="tinyLight" package="LSH_6X6" value="SPST_PB" x="48.4" y="27.5" rot="R270"/>
 <element name="C9" library="rcl" package="C2012" value="100nF" x="20.55" y="14.3"/>
-<element name="SV1" library="con-lstb" package="MA04-2" value="RF/BT" x="32.8" y="4.9">
+<element name="SV1" library="con-lstb" package="MA04-2" value="RF" x="32.8" y="4.9">
 <attribute name="OC_NEWARK" value="unknown" x="32.8" y="4.9" size="1.778" layer="27" display="off"/>
 <attribute name="MPN" value="" x="32.8" y="4.9" size="1.778" layer="27" display="off"/>
 <attribute name="MF" value="" x="32.8" y="4.9" size="1.778" layer="27" display="off"/>

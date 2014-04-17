@@ -37,7 +37,7 @@
 
 // framerate statistics
 uint_fast16_t volatile FPS = 0;
-uint_fast16_t volatile count = 0;
+uint_fast16_t volatile frame_count = 0;
 
 uint_fast8_t back_buffer[480];
 uint_fast8_t front_buffer[480];
@@ -104,9 +104,9 @@ void RTC_Alarm(uint32_t time)
 	fps_time+=alarm;
 	if(fps_time >= 1*RTC_cycle)
 	{
-		FPS = count;
+		FPS = frame_count;
 		fps_time = 0;
-		count=0;
+		frame_count=0;
 	}
 	
 	if(time > (UINT32_MAX-RTC_cycle*3600*24))	//prevent rtc overflow if there are less than 24h remaining
@@ -647,6 +647,26 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 void read_settings(void)
 {
 	nvm_eeprom_read_buffer(set_EE_offset*EEPROM_PAGE_SIZE, &set, sizeof(set));
+	if(set.default_mode==0xFF)
+	{
+		set.default_mode	=	mode_prev;
+		set.timeout_mode	=	mode_off;
+		set.timeout_time	=	timeout_vbus;
+		set.default_alpha	=	0xFF;
+		set.gamma			=	2.2		*10;	//alpha=2.2
+		set.smooth_time		=	5		*2;		//time=5s
+		set.alpha_min		=	0;
+		set.lux_max			=	1000	/40;	//brightness=1000lux
+		set.stat_LED		=	50		*2.55;	//50%
+		set.stb_LED			=	5		*2.55;	//5%
+		set.count			=	80;
+		set.OCP				=	ocp_off;
+		set.OCP_time		=	0;
+		set.SCP				=	scp_off;
+		set.UVP				=	uvp_off;
+		save_settings();
+	}
+	set.alpha=set.default_alpha;
 };
 
 void save_settings(void)
@@ -709,8 +729,6 @@ void gamma_map(void)
 	if(++run==4)
 		run=0;
 }
-
-
 
 void gamma_calc(void)
 {
@@ -804,9 +822,9 @@ void Colorswirl(uint_fast8_t anzahl_Leds)
 			sine2 += rad_3;	// 0.3 rad
 		}
 		hue1   = (hue1 + 4) % 1536;
-		sine1 += rad_03;		// 0.03 rad
+		sine1 -= rad_03;		// 0.03 rad
 		if(sine1>=deg360)
-			sine1-=deg360;
+			sine1-=(UINT_FAST16_MAX-deg360);
 		frame_update(true);
 	}
 }
@@ -949,7 +967,7 @@ void TCD1_OVF_int(void)
 		dma_channel_enable(DMA_CHANNEL_LED);
 		update_frame = false;
 	}
-	count +=1;
+	frame_count++;
 }
 
 void DMA_Led_int(dma_callback_t state)
@@ -993,15 +1011,14 @@ Bool read_USB(void)
 		for(uint_fast8_t i=1;i<sizeof(pre_ada);i++)
 		{
 			if (get_USB_char() != pre_ada[i])
+				return false;
+		}
+		char cnt_h=get_USB_char();
+		char cnt_l=get_USB_char();
+		if((cnt_l^cnt_h)!=get_USB_char())
 			return false;
-		}
-		get_USB_char();
-		char temp=get_USB_char();
-		if(temp!=set.count)
-		{
-			set.count=get_USB_char();
-			SetupDMA(true);
-		}
+		set.count=cnt_l;
+		SetupDMA(true);
 		set.mode=mode_usb_ada;
 		return true;
 	}

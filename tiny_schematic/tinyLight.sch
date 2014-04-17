@@ -7556,7 +7556,7 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <part name="P+9" library="tinyLight" deviceset="VBUS" device=""/>
 <part name="S1" library="tinyLight" deviceset="SPST_PB" device=""/>
 <part name="C9" library="rcl" deviceset="C-EU" device="C2012" value="100nF"/>
-<part name="SV1" library="con-lstb" deviceset="MA04-2" device="" value="RF/BT"/>
+<part name="SV1" library="con-lstb" deviceset="MA04-2" device="" value="RF"/>
 <part name="SV2" library="con-lstb" deviceset="MA03-1" device="" value="UART"/>
 <part name="GND16" library="supply1" deviceset="GND" device=""/>
 <part name="SV3" library="con-lstb" deviceset="MA03-1" device="" value="IR"/>
@@ -7573,8 +7573,8 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <instance part="X1" gate="G$1" x="256.54" y="63.5" rot="MR0"/>
 <instance part="GND2" gate="1" x="170.18" y="5.08"/>
 <instance part="IC1" gate="G$1" x="147.32" y="132.08"/>
-<instance part="IC3" gate="IC$1" x="210.82" y="81.28"/>
-<instance part="LED1" gate="G$1" x="170.18" y="93.98" rot="MR0"/>
+<instance part="IC3" gate="IC$1" x="213.36" y="81.28"/>
+<instance part="LED1" gate="G$1" x="172.72" y="93.98" rot="MR0"/>
 <instance part="J1" gate="G$1" x="111.76" y="123.698"/>
 <instance part="GND3" gate="1" x="226.06" y="38.1"/>
 <instance part="R11" gate="G$1" x="251.46" y="109.22" rot="R270"/>
@@ -7584,9 +7584,9 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <instance part="C1" gate="G$1" x="129.54" y="121.92" rot="R180"/>
 <instance part="C2" gate="G$1" x="165.1" y="121.92" rot="R180"/>
 <instance part="P+1" gate="1" x="129.54" y="139.7"/>
-<instance part="GND1" gate="1" x="231.14" y="71.12"/>
-<instance part="R9" gate="G$1" x="175.26" y="83.82" rot="R270"/>
-<instance part="+3V3" gate="G$1" x="175.26" y="106.68"/>
+<instance part="GND1" gate="1" x="233.68" y="71.12"/>
+<instance part="R9" gate="G$1" x="177.8" y="83.82" rot="R270"/>
+<instance part="+3V3" gate="G$1" x="177.8" y="106.68"/>
 <instance part="P+2" gate="1" x="116.84" y="139.7"/>
 <instance part="GND6" gate="1" x="116.84" y="119.38"/>
 <instance part="C3" gate="G$1" x="175.26" y="121.92" rot="R180"/>
@@ -7595,9 +7595,9 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <instance part="J2" gate="-1" x="73.66" y="93.98" rot="R180"/>
 <instance part="J2" gate="-2" x="73.66" y="96.52" rot="R180"/>
 <instance part="J2" gate="-3" x="73.66" y="99.06" rot="R180"/>
-<instance part="R8" gate="G$1" x="15.24" y="58.42" rot="R90"/>
-<instance part="R7" gate="G$1" x="15.24" y="43.18" rot="R90"/>
-<instance part="P+3" gate="1" x="15.24" y="68.58"/>
+<instance part="R8" gate="G$1" x="10.16" y="58.42" rot="R90"/>
+<instance part="R7" gate="G$1" x="10.16" y="43.18" rot="R90"/>
+<instance part="P+3" gate="1" x="10.16" y="68.58"/>
 <instance part="R5" gate="G$1" x="33.02" y="73.66" rot="R90"/>
 <instance part="JP1" gate="G$1" x="20.32" y="139.7" rot="MR0"/>
 <instance part="P+4" gate="1" x="33.02" y="157.48"/>
@@ -7608,23 +7608,23 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <instance part="R3" gate="G$1" x="88.9" y="88.9" rot="R90"/>
 <instance part="GND8" gate="1" x="78.74" y="86.36"/>
 <instance part="Q3" gate="G$1" x="35.56" y="109.22" rot="MR0"/>
-<instance part="J3" gate="1" x="71.12" y="12.7"/>
-<instance part="GND7" gate="1" x="81.28" y="5.08"/>
+<instance part="J3" gate="1" x="66.04" y="15.24"/>
+<instance part="GND7" gate="1" x="76.2" y="5.08"/>
 <instance part="C6" gate="G$1" x="208.28" y="121.92" rot="R180"/>
-<instance part="GND9" gate="1" x="88.9" y="2.54"/>
+<instance part="GND9" gate="1" x="86.36" y="2.54"/>
 <instance part="R10" gate="G$1" x="251.46" y="93.98" rot="R270"/>
 <instance part="GND10" gate="1" x="251.46" y="83.82"/>
 <instance part="R12" gate="G$1" x="220.98" y="50.8" rot="R90"/>
 <instance part="C8" gate="G$1" x="231.14" y="50.8"/>
-<instance part="GND5" gate="1" x="60.96" y="15.24"/>
-<instance part="+3V5" gate="G$1" x="27.94" y="25.4"/>
-<instance part="+3V6" gate="G$1" x="81.28" y="22.86"/>
+<instance part="GND5" gate="1" x="55.88" y="15.24"/>
+<instance part="+3V5" gate="G$1" x="22.86" y="25.4"/>
+<instance part="+3V6" gate="G$1" x="78.74" y="22.86"/>
 <instance part="R4" gate="G$1" x="53.34" y="99.06" rot="R270"/>
 <instance part="P+5" gate="1" x="45.72" y="160.02"/>
 <instance part="P+6" gate="1" x="60.96" y="160.02"/>
 <instance part="GND11" gate="1" x="33.02" y="60.96"/>
 <instance part="GND12" gate="1" x="88.9" y="78.74"/>
-<instance part="GND13" gate="1" x="15.24" y="25.4"/>
+<instance part="GND13" gate="1" x="10.16" y="25.4"/>
 <instance part="GND14" gate="1" x="53.34" y="88.9"/>
 <instance part="GND15" gate="1" x="243.84" y="53.34"/>
 <instance part="R6" gate="G$1" x="43.18" y="81.28" rot="R180"/>
@@ -7632,11 +7632,11 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
 <instance part="FRAME1" gate="G$2" x="162.56" y="144.78"/>
 <instance part="P+7" gate="1" x="243.84" y="73.66"/>
-<instance part="P+8" gate="1" x="231.14" y="93.98"/>
+<instance part="P+8" gate="1" x="233.68" y="93.98"/>
 <instance part="P+9" gate="1" x="251.46" y="119.38"/>
-<instance part="S1" gate="G$1" x="96.52" y="5.08" rot="MR0"/>
-<instance part="C9" gate="G$1" x="25.4" y="43.18"/>
-<instance part="SV1" gate="G$1" x="48.26" y="25.4"/>
+<instance part="S1" gate="G$1" x="93.98" y="7.62" rot="MR0"/>
+<instance part="C9" gate="G$1" x="20.32" y="45.72"/>
+<instance part="SV1" gate="G$1" x="43.18" y="25.4"/>
 <instance part="SV2" gate="G$1" x="187.96" y="48.26" rot="R180"/>
 <instance part="GND16" gate="1" x="177.8" y="43.18"/>
 <instance part="SV3" gate="G$1" x="81.28" y="58.42"/>
@@ -7648,13 +7648,13 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <net name="USB_P" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PD7(TXD1/SCK/CLKO/EVO)"/>
-<wire x1="165.1" y1="63.5" x2="187.96" y2="63.5" width="0.1524" layer="91"/>
+<wire x1="165.1" y1="63.5" x2="190.5" y2="63.5" width="0.1524" layer="91"/>
 <pinref part="X1" gate="G$1" pin="D+"/>
-<wire x1="243.84" y1="63.5" x2="187.96" y2="63.5" width="0.1524" layer="91"/>
+<wire x1="243.84" y1="63.5" x2="190.5" y2="63.5" width="0.1524" layer="91"/>
 <pinref part="IC3" gate="IC$1" pin="CH1"/>
-<wire x1="187.96" y1="63.5" x2="187.96" y2="88.9" width="0.1524" layer="91"/>
-<wire x1="187.96" y1="88.9" x2="193.04" y2="88.9" width="0.1524" layer="91"/>
-<junction x="187.96" y="63.5"/>
+<wire x1="190.5" y1="63.5" x2="190.5" y2="88.9" width="0.1524" layer="91"/>
+<wire x1="190.5" y1="88.9" x2="195.58" y2="88.9" width="0.1524" layer="91"/>
+<junction x="190.5" y="63.5"/>
 <label x="175.26" y="63.5" size="1.778" layer="95"/>
 </segment>
 </net>
@@ -7662,12 +7662,12 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <segment>
 <pinref part="IC2" gate="G$1" pin="PD6(RXD1/MISO)"/>
 <pinref part="X1" gate="G$1" pin="D-"/>
-<wire x1="165.1" y1="66.04" x2="190.5" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="165.1" y1="66.04" x2="193.04" y2="66.04" width="0.1524" layer="91"/>
 <pinref part="IC3" gate="IC$1" pin="CH2"/>
-<wire x1="190.5" y1="66.04" x2="243.84" y2="66.04" width="0.1524" layer="91"/>
-<wire x1="190.5" y1="66.04" x2="190.5" y2="76.2" width="0.1524" layer="91"/>
-<wire x1="190.5" y1="76.2" x2="193.04" y2="76.2" width="0.1524" layer="91"/>
-<junction x="190.5" y="66.04"/>
+<wire x1="193.04" y1="66.04" x2="243.84" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="193.04" y1="66.04" x2="193.04" y2="76.2" width="0.1524" layer="91"/>
+<wire x1="193.04" y1="76.2" x2="195.58" y2="76.2" width="0.1524" layer="91"/>
+<junction x="193.04" y="66.04"/>
 <label x="175.26" y="66.04" size="1.778" layer="95"/>
 </segment>
 </net>
@@ -7738,8 +7738,8 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 </segment>
 <segment>
 <pinref part="IC3" gate="IC$1" pin="GND"/>
-<wire x1="228.6" y1="76.2" x2="231.14" y2="76.2" width="0.1524" layer="91"/>
-<wire x1="231.14" y1="76.2" x2="231.14" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="231.14" y1="76.2" x2="233.68" y2="76.2" width="0.1524" layer="91"/>
+<wire x1="233.68" y1="76.2" x2="233.68" y2="73.66" width="0.1524" layer="91"/>
 <pinref part="GND1" gate="1" pin="GND"/>
 </segment>
 <segment>
@@ -7772,11 +7772,11 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <pinref part="R7" gate="G$1" pin="1"/>
 <pinref part="GND13" gate="1" pin="GND"/>
 <pinref part="C9" gate="G$1" pin="2"/>
-<wire x1="25.4" y1="38.1" x2="25.4" y2="35.56" width="0.1524" layer="91"/>
-<wire x1="25.4" y1="35.56" x2="15.24" y2="35.56" width="0.1524" layer="91"/>
-<wire x1="15.24" y1="38.1" x2="15.24" y2="35.56" width="0.1524" layer="91"/>
-<wire x1="15.24" y1="35.56" x2="15.24" y2="27.94" width="0.1524" layer="91"/>
-<junction x="15.24" y="35.56"/>
+<wire x1="20.32" y1="40.64" x2="20.32" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="20.32" y1="35.56" x2="10.16" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="38.1" x2="10.16" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="35.56" x2="10.16" y2="27.94" width="0.1524" layer="91"/>
+<junction x="10.16" y="35.56"/>
 </segment>
 <segment>
 <pinref part="R5" gate="G$1" pin="1"/>
@@ -7795,12 +7795,14 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <segment>
 <pinref part="J3" gate="1" pin="1"/>
 <pinref part="GND7" gate="1" pin="GND"/>
-<wire x1="81.28" y1="7.62" x2="78.74" y2="7.62" width="0.1524" layer="91"/>
+<wire x1="76.2" y1="7.62" x2="76.2" y2="10.16" width="0.1524" layer="91"/>
+<wire x1="76.2" y1="10.16" x2="73.66" y2="10.16" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="GND9" gate="1" pin="GND"/>
 <pinref part="S1" gate="G$1" pin="2"/>
-<wire x1="91.44" y1="5.08" x2="88.9" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="88.9" y1="7.62" x2="86.36" y2="7.62" width="0.1524" layer="91"/>
+<wire x1="86.36" y1="7.62" x2="86.36" y2="5.08" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="GND10" gate="1" pin="GND"/>
@@ -7809,9 +7811,9 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 </segment>
 <segment>
 <pinref part="GND5" gate="1" pin="GND"/>
-<wire x1="60.96" y1="20.32" x2="60.96" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="55.88" y1="20.32" x2="55.88" y2="17.78" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="1"/>
-<wire x1="55.88" y1="20.32" x2="60.96" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="50.8" y1="20.32" x2="55.88" y2="20.32" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="GND16" gate="1" pin="GND"/>
@@ -7832,9 +7834,9 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 </segment>
 <segment>
 <pinref part="P+8" gate="1" pin="VBUS"/>
-<wire x1="231.14" y1="88.9" x2="231.14" y2="91.44" width="0.1524" layer="91"/>
+<wire x1="233.68" y1="88.9" x2="233.68" y2="91.44" width="0.1524" layer="91"/>
 <pinref part="IC3" gate="IC$1" pin="VCC"/>
-<wire x1="228.6" y1="88.9" x2="231.14" y2="88.9" width="0.1524" layer="91"/>
+<wire x1="231.14" y1="88.9" x2="233.68" y2="88.9" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="X1" gate="G$1" pin="VBUS"/>
@@ -7889,19 +7891,19 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <segment>
 <pinref part="LED1" gate="G$1" pin="ANODE"/>
 <pinref part="+3V3" gate="G$1" pin="+3V3"/>
-<wire x1="175.26" y1="104.14" x2="175.26" y2="99.06" width="0.1524" layer="91"/>
+<wire x1="177.8" y1="104.14" x2="177.8" y2="99.06" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="J3" gate="1" pin="4"/>
 <pinref part="+3V6" gate="G$1" pin="+3V3"/>
-<wire x1="78.74" y1="15.24" x2="81.28" y2="15.24" width="0.1524" layer="91"/>
-<wire x1="81.28" y1="15.24" x2="81.28" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="73.66" y1="17.78" x2="78.74" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="78.74" y1="17.78" x2="78.74" y2="20.32" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="+3V5" gate="G$1" pin="+3V3"/>
-<wire x1="27.94" y1="22.86" x2="27.94" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="22.86" y1="22.86" x2="22.86" y2="20.32" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="2"/>
-<wire x1="40.64" y1="20.32" x2="27.94" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="35.56" y1="20.32" x2="22.86" y2="20.32" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="+5V" class="0">
@@ -7923,7 +7925,7 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <segment>
 <pinref part="R8" gate="G$1" pin="2"/>
 <pinref part="P+3" gate="1" pin="+5V"/>
-<wire x1="15.24" y1="63.5" x2="15.24" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="63.5" x2="10.16" y2="66.04" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="P+5" gate="1" pin="+5V"/>
@@ -7944,13 +7946,13 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 </net>
 <net name="VBUS_LOW" class="0">
 <segment>
-<wire x1="182.88" y1="73.66" x2="182.88" y2="101.6" width="0.1524" layer="91"/>
+<wire x1="185.42" y1="73.66" x2="185.42" y2="101.6" width="0.1524" layer="91"/>
 <pinref part="R11" gate="G$1" pin="2"/>
 <pinref part="IC2" gate="G$1" pin="PD3(OC0D/TXD0)"/>
-<wire x1="182.88" y1="101.6" x2="251.46" y2="101.6" width="0.1524" layer="91"/>
+<wire x1="185.42" y1="101.6" x2="251.46" y2="101.6" width="0.1524" layer="91"/>
 <wire x1="251.46" y1="99.06" x2="251.46" y2="101.6" width="0.1524" layer="91"/>
 <wire x1="251.46" y1="101.6" x2="251.46" y2="104.14" width="0.1524" layer="91"/>
-<wire x1="165.1" y1="73.66" x2="182.88" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="165.1" y1="73.66" x2="185.42" y2="73.66" width="0.1524" layer="91"/>
 <pinref part="R10" gate="G$1" pin="1"/>
 <junction x="251.46" y="101.6"/>
 </segment>
@@ -7959,14 +7961,14 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <segment>
 <pinref part="LED1" gate="G$1" pin="CRED"/>
 <pinref part="R9" gate="G$1" pin="1"/>
-<wire x1="175.26" y1="91.44" x2="175.26" y2="88.9" width="0.1524" layer="91"/>
+<wire x1="177.8" y1="91.44" x2="177.8" y2="88.9" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="G" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PD1(OC0B/XCK0)"/>
-<wire x1="170.18" y1="91.44" x2="170.18" y2="78.74" width="0.1524" layer="91"/>
-<wire x1="170.18" y1="78.74" x2="165.1" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="172.72" y1="91.44" x2="172.72" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="172.72" y1="78.74" x2="165.1" y2="78.74" width="0.1524" layer="91"/>
 <label x="165.1" y="78.74" size="1.778" layer="95"/>
 <pinref part="LED1" gate="G$1" pin="CGREEN"/>
 </segment>
@@ -7976,18 +7978,16 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <pinref part="IC2" gate="G$1" pin="PD0(OC0A)"/>
 <wire x1="165.1" y1="81.28" x2="167.64" y2="81.28" width="0.1524" layer="91"/>
 <label x="165.1" y="81.28" size="1.778" layer="95"/>
-<wire x1="167.64" y1="81.28" x2="167.64" y2="88.9" width="0.1524" layer="91"/>
+<wire x1="167.64" y1="81.28" x2="167.64" y2="91.44" width="0.1524" layer="91"/>
 <pinref part="LED1" gate="G$1" pin="CBLUE"/>
-<wire x1="165.1" y1="91.44" x2="165.1" y2="88.9" width="0.1524" layer="91"/>
-<wire x1="167.64" y1="88.9" x2="165.1" y2="88.9" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="R" class="0">
 <segment>
 <pinref part="R9" gate="G$1" pin="2"/>
-<wire x1="175.26" y1="78.74" x2="175.26" y2="76.2" width="0.1524" layer="91"/>
+<wire x1="177.8" y1="78.74" x2="177.8" y2="76.2" width="0.1524" layer="91"/>
 <pinref part="IC2" gate="G$1" pin="PD2(OC0C/RXD0)"/>
-<wire x1="175.26" y1="76.2" x2="165.1" y2="76.2" width="0.1524" layer="91"/>
+<wire x1="177.8" y1="76.2" x2="165.1" y2="76.2" width="0.1524" layer="91"/>
 <label x="165.1" y="76.2" size="1.778" layer="95"/>
 </segment>
 </net>
@@ -8010,15 +8010,15 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <pinref part="R8" gate="G$1" pin="1"/>
 <pinref part="R7" gate="G$1" pin="2"/>
 <pinref part="IC2" gate="G$1" pin="PB3(ADC11/DAC1)"/>
-<wire x1="15.24" y1="50.8" x2="25.4" y2="50.8" width="0.1524" layer="91"/>
-<wire x1="25.4" y1="50.8" x2="104.14" y2="50.8" width="0.1524" layer="91"/>
-<wire x1="15.24" y1="48.26" x2="15.24" y2="50.8" width="0.1524" layer="91"/>
-<junction x="15.24" y="50.8"/>
-<wire x1="15.24" y1="50.8" x2="15.24" y2="53.34" width="0.1524" layer="91"/>
-<label x="66.04" y="50.8" size="1.778" layer="95"/>
+<wire x1="10.16" y1="50.8" x2="20.32" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="20.32" y1="50.8" x2="104.14" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="48.26" x2="10.16" y2="50.8" width="0.1524" layer="91"/>
+<junction x="10.16" y="50.8"/>
+<wire x1="10.16" y1="50.8" x2="10.16" y2="53.34" width="0.1524" layer="91"/>
+<label x="60.96" y="50.8" size="1.778" layer="95"/>
 <pinref part="C9" gate="G$1" pin="1"/>
-<wire x1="25.4" y1="45.72" x2="25.4" y2="50.8" width="0.1524" layer="91"/>
-<junction x="25.4" y="50.8"/>
+<wire x1="20.32" y1="48.26" x2="20.32" y2="50.8" width="0.1524" layer="91"/>
+<junction x="20.32" y="50.8"/>
 </segment>
 </net>
 <net name="I_LED" class="0">
@@ -8096,7 +8096,7 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <wire x1="33.02" y1="132.08" x2="30.48" y2="132.08" width="0.1524" layer="91"/>
 <wire x1="33.02" y1="119.38" x2="33.02" y2="114.3" width="0.1524" layer="91"/>
 <junction x="33.02" y="119.38"/>
-<label x="43.18" y="121.92" size="1.778" layer="95" rot="R180"/>
+<label x="35.56" y="119.38" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="PWR_SW" class="0">
@@ -8116,23 +8116,23 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <net name="N$17" class="0">
 <segment>
 <pinref part="J3" gate="1" pin="3"/>
-<wire x1="78.74" y1="12.7" x2="83.82" y2="12.7" width="0.1524" layer="91"/>
-<wire x1="83.82" y1="12.7" x2="86.36" y2="10.16" width="0.1524" layer="91"/>
+<wire x1="73.66" y1="15.24" x2="78.74" y2="15.24" width="0.1524" layer="91"/>
+<wire x1="78.74" y1="15.24" x2="81.28" y2="12.7" width="0.1524" layer="91"/>
 <pinref part="IC2" gate="G$1" pin="PDI-CLK/!RESET"/>
-<wire x1="86.36" y1="10.16" x2="91.44" y2="10.16" width="0.1524" layer="91"/>
-<wire x1="91.44" y1="10.16" x2="91.44" y2="17.78" width="0.1524" layer="91"/>
-<wire x1="91.44" y1="17.78" x2="104.14" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="81.28" y1="12.7" x2="86.36" y2="12.7" width="0.1524" layer="91"/>
+<wire x1="86.36" y1="12.7" x2="86.36" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="86.36" y1="17.78" x2="104.14" y2="17.78" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$18" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PDI-DATA"/>
-<wire x1="104.14" y1="20.32" x2="88.9" y2="20.32" width="0.1524" layer="91"/>
-<wire x1="88.9" y1="20.32" x2="88.9" y2="12.7" width="0.1524" layer="91"/>
-<wire x1="88.9" y1="12.7" x2="86.36" y2="12.7" width="0.1524" layer="91"/>
-<wire x1="86.36" y1="12.7" x2="83.82" y2="10.16" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="20.32" x2="83.82" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="83.82" y1="20.32" x2="83.82" y2="15.24" width="0.1524" layer="91"/>
+<wire x1="83.82" y1="15.24" x2="81.28" y2="15.24" width="0.1524" layer="91"/>
+<wire x1="81.28" y1="15.24" x2="78.74" y2="12.7" width="0.1524" layer="91"/>
 <pinref part="J3" gate="1" pin="2"/>
-<wire x1="83.82" y1="10.16" x2="78.74" y2="10.16" width="0.1524" layer="91"/>
+<wire x1="78.74" y1="12.7" x2="73.66" y2="12.7" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="SHIELD" class="0">
@@ -8152,10 +8152,10 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <net name="N$27" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PB1(ADC9)"/>
-<wire x1="96.52" y1="55.88" x2="104.14" y2="55.88" width="0.1524" layer="91"/>
+<wire x1="99.06" y1="55.88" x2="104.14" y2="55.88" width="0.1524" layer="91"/>
 <pinref part="SV3" gate="G$1" pin="3"/>
-<wire x1="88.9" y1="60.96" x2="96.52" y2="60.96" width="0.1524" layer="91"/>
-<wire x1="96.52" y1="60.96" x2="96.52" y2="55.88" width="0.1524" layer="91"/>
+<wire x1="88.9" y1="60.96" x2="99.06" y2="60.96" width="0.1524" layer="91"/>
+<wire x1="99.06" y1="60.96" x2="99.06" y2="55.88" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="VGND" class="0">
@@ -8173,9 +8173,9 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <segment>
 <pinref part="IC2" gate="G$1" pin="PB2(ADC10/DAC0)"/>
 <pinref part="SV3" gate="G$1" pin="2"/>
-<wire x1="88.9" y1="58.42" x2="93.98" y2="58.42" width="0.1524" layer="91"/>
-<wire x1="93.98" y1="58.42" x2="93.98" y2="53.34" width="0.1524" layer="91"/>
-<wire x1="93.98" y1="53.34" x2="104.14" y2="53.34" width="0.1524" layer="91"/>
+<wire x1="88.9" y1="58.42" x2="96.52" y2="58.42" width="0.1524" layer="91"/>
+<wire x1="96.52" y1="58.42" x2="96.52" y2="53.34" width="0.1524" layer="91"/>
+<wire x1="96.52" y1="53.34" x2="104.14" y2="53.34" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$3" class="0">
@@ -8189,50 +8189,50 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 </net>
 <net name="MOSI" class="0">
 <segment>
-<wire x1="33.02" y1="25.4" x2="33.02" y2="35.56" width="0.1524" layer="91"/>
-<wire x1="33.02" y1="35.56" x2="78.74" y2="35.56" width="0.1524" layer="91"/>
-<wire x1="78.74" y1="35.56" x2="78.74" y2="30.48" width="0.1524" layer="91"/>
+<wire x1="27.94" y1="25.4" x2="27.94" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="27.94" y1="35.56" x2="60.96" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="60.96" y1="35.56" x2="60.96" y2="30.48" width="0.1524" layer="91"/>
 <pinref part="IC2" gate="G$1" pin="PC5(OC1B/MOSI/XCK1)"/>
-<wire x1="78.74" y1="30.48" x2="104.14" y2="30.48" width="0.1524" layer="91"/>
+<wire x1="60.96" y1="30.48" x2="104.14" y2="30.48" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="6"/>
-<wire x1="33.02" y1="25.4" x2="40.64" y2="25.4" width="0.1524" layer="91"/>
-<label x="40.64" y="25.4" size="1.778" layer="95" rot="MR0"/>
+<wire x1="27.94" y1="25.4" x2="35.56" y2="25.4" width="0.1524" layer="91"/>
+<label x="35.56" y="25.4" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
 <net name="MISO" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PC6(MISO/RXD1)"/>
-<wire x1="104.14" y1="27.94" x2="55.88" y2="27.94" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="27.94" x2="50.8" y2="27.94" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="7"/>
-<label x="55.88" y="27.94" size="1.778" layer="95"/>
+<label x="50.8" y="27.94" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="SCK" class="0">
 <segment>
 <pinref part="SV1" gate="G$1" pin="5"/>
 <pinref part="IC2" gate="G$1" pin="PC7(SCK/TXD1/CLKO/EVO)"/>
-<wire x1="55.88" y1="25.4" x2="104.14" y2="25.4" width="0.1524" layer="91"/>
-<label x="55.88" y="25.4" size="1.778" layer="95"/>
+<wire x1="50.8" y1="25.4" x2="104.14" y2="25.4" width="0.1524" layer="91"/>
+<label x="50.8" y="25.4" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="IRQ" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PC4(OC1A/!SS!)"/>
-<wire x1="104.14" y1="33.02" x2="35.56" y2="33.02" width="0.1524" layer="91"/>
-<wire x1="35.56" y1="33.02" x2="35.56" y2="27.94" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="33.02" x2="30.48" y2="33.02" width="0.1524" layer="91"/>
+<wire x1="30.48" y1="33.02" x2="30.48" y2="27.94" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="8"/>
-<wire x1="35.56" y1="27.94" x2="40.64" y2="27.94" width="0.1524" layer="91"/>
-<label x="40.64" y="27.94" size="1.778" layer="95" rot="MR0"/>
+<wire x1="30.48" y1="27.94" x2="35.56" y2="27.94" width="0.1524" layer="91"/>
+<label x="35.56" y="27.94" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
 <net name="CSN" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PC2(OC0C/RXD0)"/>
-<wire x1="104.14" y1="38.1" x2="30.48" y2="38.1" width="0.1524" layer="91"/>
-<wire x1="30.48" y1="38.1" x2="30.48" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="38.1" x2="25.4" y2="38.1" width="0.1524" layer="91"/>
+<wire x1="25.4" y1="38.1" x2="25.4" y2="22.86" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="4"/>
-<wire x1="30.48" y1="22.86" x2="40.64" y2="22.86" width="0.1524" layer="91"/>
-<label x="40.64" y="22.86" size="1.778" layer="95" rot="MR0"/>
+<wire x1="25.4" y1="22.86" x2="35.56" y2="22.86" width="0.1524" layer="91"/>
+<label x="35.56" y="22.86" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
 <net name="N$12" class="0">
@@ -8240,7 +8240,8 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <pinref part="IC2" gate="G$1" pin="PR0(XTAL2/TOSC1)"/>
 <pinref part="S1" gate="G$1" pin="1"/>
 <wire x1="104.14" y1="12.7" x2="101.6" y2="12.7" width="0.1524" layer="91"/>
-<wire x1="101.6" y1="12.7" x2="101.6" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="101.6" y1="12.7" x2="101.6" y2="7.62" width="0.1524" layer="91"/>
+<wire x1="101.6" y1="7.62" x2="99.06" y2="7.62" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$10" class="0">
@@ -8260,11 +8261,11 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <net name="CE" class="0">
 <segment>
 <pinref part="IC2" gate="G$1" pin="PC0(OC0A/SDA)"/>
-<wire x1="104.14" y1="43.18" x2="66.04" y2="43.18" width="0.1524" layer="91"/>
-<wire x1="66.04" y1="43.18" x2="66.04" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="104.14" y1="43.18" x2="58.42" y2="43.18" width="0.1524" layer="91"/>
+<wire x1="58.42" y1="43.18" x2="58.42" y2="22.86" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="3"/>
-<wire x1="66.04" y1="22.86" x2="55.88" y2="22.86" width="0.1524" layer="91"/>
-<label x="55.88" y="22.86" size="1.778" layer="95"/>
+<wire x1="58.42" y1="22.86" x2="50.8" y2="22.86" width="0.1524" layer="91"/>
+<label x="50.8" y="22.86" size="1.778" layer="95"/>
 </segment>
 </net>
 </nets>
