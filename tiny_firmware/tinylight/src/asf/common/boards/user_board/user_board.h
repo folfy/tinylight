@@ -15,9 +15,10 @@
 #define USER_BOARD_H
 
 #include <conf_board.h>
+#include "main.h"
 
 #ifndef board_rev
-#error "Board_rev undefined"
+#error "board_rev undefined"
 #endif
 
 #if board_rev == 1
@@ -76,6 +77,7 @@
 #ifdef UART_avail
 #define UART_RX			IOPORT_CREATE_PIN(PORTE,2)
 #define UART_TX			IOPORT_CREATE_PIN(PORTE,3)
+#endif
 
 #define DMA_CHANNEL_LED 0
 

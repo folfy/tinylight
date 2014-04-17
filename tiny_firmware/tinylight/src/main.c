@@ -24,14 +24,6 @@
  *	TCD1:	DMA-Wait
  */
 
-#define board_rev 1	
-//#define board_rev 0	//Debug-Board (alpha)
-/*	uncomment definition to enable additional hardware modules	*/
-//#define IR_avail		//IR-Receiver
-//#define RF_avail 1	//RF-Transceiver
-//#define RF_avail 0	//BT-Transceiver
-//#define UART_avail	//UART-Port
-
 #include "main.h"
 #include "tiny_protocol.h"
 #include <stdio.h>
@@ -1017,8 +1009,10 @@ Bool read_USB(void)
 	switch (get_USB_char())
 	{
 		case cmd_test:		udi_cdc_write_buf(&response,sizeof(response));
+							udi_cdc_putc(protocol_rev);
+							udi_cdc_putc(software_rev);
+							udi_cdc_putc(board_rev);
 							udi_cdc_putc(set.mode);
-							udi_cdc_putc(Version);
 							break;
 		case cmd_raw_data:	//if(set.mode == mode_single_led)
 		switch(set.mode)

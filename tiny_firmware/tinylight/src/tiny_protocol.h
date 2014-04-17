@@ -8,7 +8,7 @@
 #ifndef PROTOCOL_H_
 #define PROTOCOL_H_
 
-#define protocol_ver 0x02
+#define protocol_rev 0x02
 
 #ifdef _WIN32
 #define term 1

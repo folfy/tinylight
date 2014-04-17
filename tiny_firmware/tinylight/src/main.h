@@ -10,8 +10,16 @@
 
 #include <usb_protocol_cdc.h>
 
+#define board_rev 1
+//#define board_rev 0	//Debug-Board (alpha)
+/*	uncomment definition to enable additional hardware modules	*/
+//#define IR_avail		//IR-Receiver
+//#define RF_avail 1	//RF-Transceiver
+//#define RF_avail 0	//BT-Transceiver
+//#define UART_avail	//UART-Port
+
+#define software_rev 0x03
 #define F_CPU 32000000
-#define Version 0x01
 #define RTC_cycle 32768/16
 
 typedef struct {
