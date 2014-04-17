@@ -1044,13 +1044,15 @@ Bool read_USB(void)
 		//}
 		break;
 		case cmd_measure:	udi_cdc_putc(measure.voltage >> 8);
-		udi_cdc_putc(measure.voltage);
-		udi_cdc_putc(measure.current >> 8);
-		udi_cdc_putc(measure.current);
-		udi_cdc_putc(measure.light >> 8);
-		udi_cdc_putc(measure.light);
-		udi_cdc_putc(measure.temp);
-		break;
+							udi_cdc_putc(measure.voltage);
+							udi_cdc_putc(measure.current >> 8);
+							udi_cdc_putc(measure.current);
+							udi_cdc_putc(measure.light >> 8);
+							udi_cdc_putc(measure.light);
+							udi_cdc_putc(measure.temp);
+							udi_cdc_putc(FPS >> 8);
+							udi_cdc_putc(FPS);
+							break;
 		case cmd_set_read:	switch(get_USB_char())
 							{
 								case set_mode:				udi_cdc_putc(set.mode);			break;

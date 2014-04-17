@@ -59,17 +59,17 @@ const char pre_ada[3+term]	= "Ada";
 
 #define mode_prev			state_error	//	reuse error state bit for default mode = previous mode
 
-#define mode_off			0x00
-#define mode_usb_single		0x00	| state_on					| state_usb
-#define mode_usb_multi		0x01	| state_on					| state_usb	| state_multi
-#define mode_usb_ada		0x08	| state_on					| state_usb	| state_multi
-#define mode_mood_lamp		0x00	| state_on
-#define mode_rainbow		0x01	| state_on								| state_multi
-#define mode_colorswirl		0x02	| state_on								| state_multi
-#define mode_error_UVP		0x00				| state_error
-#define mode_error_OVP		0x01				| state_error
-#define mode_error_OCP		0x02				| state_error
-#define mode_error_SCP		0x03				| state_error
-#define mode_error_internal	0x0F				| state_error
+#define mode_off			(	0x00															)
+#define mode_usb_single		(	0x00	| state_on					| state_usb					)
+#define mode_usb_multi		(	0x01	| state_on					| state_usb	| state_multi	)
+#define mode_usb_ada		(	0x08	| state_on					| state_usb	| state_multi	)
+#define mode_mood_lamp		(	0x00	| state_on												)
+#define mode_rainbow		(	0x01	| state_on								| state_multi	)
+#define mode_colorswirl		(	0x02	| state_on								| state_multi	)
+#define mode_error_UVP		(	0x00				| state_error								)
+#define mode_error_OVP		(	0x01				| state_error								)
+#define mode_error_OCP		(	0x02				| state_error								)
+#define mode_error_SCP		(	0x03				| state_error								)
+#define mode_error_internal	(	0x0F				| state_error								)
 
 #endif
