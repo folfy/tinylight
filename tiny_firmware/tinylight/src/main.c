@@ -24,14 +24,19 @@
  *	TCD1:	DMA-Wait
  */
 
-#define IR_avail
+#define board_rev 1	
+//#define board_rev 0	//Debug-Board (alpha)
+/*	uncomment definition to enable additional hardware modules	*/
+//#define IR_avail		//IR-Receiver
+//#define RF_avail 1	//RF-Transceiver
+//#define RF_avail 0	//BT-Transceiver
+//#define UART_avail	//UART-Port
 
 #include "main.h"
 #include "tiny_protocol.h"
 #include <stdio.h>
 #include <asf.h>
 #include <avr/io.h>
-//#include <util/delay.h>
 #include <avr/interrupt.h>
 #include "mul16x16.h"
 #include "data.h"
@@ -1078,23 +1083,23 @@ Bool read_USB(void)
 							set_value = get_USB_char(); if (set_value != get_USB_char()) return false;
 							switch(set_addr)
 							{
-								case set_mode:				mode_update(set_value);			break;
-								case set_default_mode:		set.default_mode = set_value;	break;
-								case set_timeout_mode:		set.timeout_mode = set_value;	break;
-								case set_timeout_time:		set.timeout_time = set_value;	break;
-								case set_alpha:				set.alpha = set_value;			break;
-								case set_default_alpha:		set.default_alpha = set_value;	break;
-								case set_gamma:				set.gamma = set_value;			break;
-								case set_smooth_time:		set.smooth_time = set_value;	break;
-								case set_alpha_min:			set.alpha_min = set_value;		break;
-								case set_lux_max:			set.lux_max = set_value;		break;
-								case set_stat_Led:			set.stat_LED = set_value;		break;
-								case set_stb_Led:			set.stb_LED = set_value;		break;
-								case set_count:				set.count = set_value;			break;
-								case set_OCP:				set.OCP = set_value;			break;
-								case set_OCP_time:			set.OCP_time = set_value;		break;
-								case set_SCP:				set.SCP = set_value;			break;
-								case set_UVP:				set.UVP = set_value;			break;
+								case set_mode:				mode_update(set_value);					break;
+								case set_default_mode:		set.default_mode = set_value;			break;
+								case set_timeout_mode:		set.timeout_mode = set_value;			break;
+								case set_timeout_time:		set.timeout_time = set_value;			break;
+								case set_alpha:				set.alpha = set_value;					break;
+								case set_default_alpha:		set.default_alpha = set_value;			break;
+								case set_gamma:				set.gamma = set_value; gamma_calc();	break;
+								case set_smooth_time:		set.smooth_time = set_value;			break;
+								case set_alpha_min:			set.alpha_min = set_value;				break;
+								case set_lux_max:			set.lux_max = set_value;				break;
+								case set_stat_Led:			set.stat_LED = set_value;				break;
+								case set_stb_Led:			set.stb_LED = set_value;				break;
+								case set_count:				set.count = set_value;					break;
+								case set_OCP:				set.OCP = set_value;					break;
+								case set_OCP_time:			set.OCP_time = set_value;				break;
+								case set_SCP:				set.SCP = set_value;					break;
+								case set_UVP:				set.UVP = set_value;					break;
 								default: return false;
 							}
 							break;
