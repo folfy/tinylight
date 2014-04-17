@@ -71,7 +71,7 @@ void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 #endif
 void DMA_Led_int(dma_callback_t state);
 
-//Status_LED, FPS count
+//Button, Status_LED, FPS count
 void RTC_Alarm(uint32_t time)
 {
 	const uint_fast16_t alarm = 0.0125*RTC_cycle;
@@ -713,12 +713,7 @@ void gamma_map(void)
 		run=0;
 }
 
-uint_fast16_t multi(uint_fast16_t a, uint_fast16_t b)
-{
-	uint_fast16_t result;
-	MultiU16X16toH16Round(result,a,b);
-	return result;
-}
+
 
 void gamma_calc(void)
 {
@@ -738,11 +733,11 @@ void gamma_calc(void)
 		uint_fast16_t root=(nvm_flash_read_byte( (flash_addr_t) &root_10[x]+1) <<8)+nvm_flash_read_byte( (flash_addr_t) &root_10[x]);
 		
 		for(uint_fast8_t cnt=gamma_pot;cnt;cnt--)
-		y=multi(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
+		y=MulU16X16toH16Round(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
 		for(uint_fast8_t cnt=gamma_dec;cnt;cnt--)
-		y=multi(y,root);
+		y=MulU16X16toH16Round(y,root);
 		
-		gamma_lut[x]=multi(y,1020);
+		gamma_lut[x]=MulU16X16toH16Round(y,1020);
 		
 		if(x==255)
 			break;
