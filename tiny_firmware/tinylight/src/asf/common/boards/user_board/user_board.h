@@ -21,10 +21,10 @@
 #error "board_rev undefined"
 #endif
 
-#if board_rev == 1
+#if		board_rev == 0x10
 #define Sens_Light_en	IOPORT_CREATE_PIN(PORTA,3)
 #define Sens_Light		IOPORT_CREATE_PIN(PORTA,4)
-#elif board_rev == 0
+#elif	board_rev == 0x01
 #define	Sens_Light		IOPORT_CREATE_PIN(PORTA,1)
 #endif
 
@@ -41,8 +41,8 @@
 #define	LED_CLK			IOPORT_CREATE_PIN(PORTC,1)
 #define	LED_TX			IOPORT_CREATE_PIN(PORTC,3)
 
-#ifdef RF_avail
-#if RF_avail==1
+#ifdef	RF_avail
+#if		RF_avail==1
 #define RF_CE			IOPORT_CREATE_PIN(PORTC,0)
 #define RF_CSN			IOPORT_CREATE_PIN(PORTC,2)
 #define RF_IRQ			IOPORT_CREATE_PIN(PORTC,4)
@@ -51,7 +51,7 @@
 #define RF_SCK			IOPORT_CREATE_PIN(PORTC,7)
 #endif
 
-#if RF_avail==0
+#if		RF_avail==2
 #define BT_P3			IOPORT_CREATE_PIN(PORTC,0)
 #define BT_P4			IOPORT_CREATE_PIN(PORTC,2)
 #define BT_P8			IOPORT_CREATE_PIN(PORTC,4)
@@ -68,9 +68,9 @@
 #define USB_D_N			IOPORT_CREATE_PIN(PORTD,6)
 #define USB_D_P			IOPORT_CREATE_PIN(PORTD,7)
 
-#if board_rev == 1
+#if		board_rev == 0x10
 #define BUTTON			IOPORT_CREATE_PIN(PORTR,0)
-#elif board_rev == 0
+#elif	board_rev == 0x01
 #define BUTTON			IOPORT_CREATE_PIN(PORTE,3)
 #endif
 
