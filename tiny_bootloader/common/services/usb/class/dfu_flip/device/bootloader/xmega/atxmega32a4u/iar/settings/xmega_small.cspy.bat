@@ -19,6 +19,6 @@
 @REM 
 
 
-"C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\common\bin\cspybat" "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\bin\avrproc.dll" "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\bin\avrJtagIce-mkII.dll"  %1 --plugin "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\bin\avrlibsupportbat.dll" --backend -B "--cpu=xm32a4u" "--enhanced_core" "-p" "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\Config\ioxm32a4u.ddf" "--eeprom_size" "1024" "-d" "jtagIceMkII" "--drv_dragon" "--jtagice_clock=100000" "--drv_communication=USB" "--drv_use_PDI" 
+"C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\common\bin\cspybat" "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\bin\avrproc.dll" "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\bin\avrsim.dll"  %1 --plugin "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\bin\avrlibsupportbat.dll" --backend -B "--cpu=xm32a4u" "--enhanced_core" "-p" "C:\Program Files (x86)\IAR Systems\Embedded Workbench 6.5\avr\Config\ioxm32a4u.ddf" "--eeprom_size" "1024" "-d" "sim" 
 
 

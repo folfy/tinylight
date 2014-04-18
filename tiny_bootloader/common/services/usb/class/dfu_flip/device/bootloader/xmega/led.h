@@ -3,12 +3,13 @@
 
 void led_on()
 {
-    TCD0_CTRLA = 0;				//Stop Timer
-    PORTD.DIRSET = PIN0_bm;
-    TCD0_CTRLB = 0x13;	//Link PD0 to Timer; Mode: Single Slope PWM
-    TCD0_PER = 0xffff;		//Set TOP value to 16Bit
-    TCD0_CCA = 0x7fff;          //Set blue color 50% on
-    TCD0_CTRLA = 0x6;	//Start Timer Clk/256
+    TCD0_CTRLA = 0;	        //Stop Timer
+    PORTD.DIRSET = PIN0_bm | PIN2_bm;
+    TCD0_CTRLB = 0x53;	        //Link PD0 to Timer; Mode: Single Slope PWM
+    TCD0_PER = 0xfff;	        //Set TOP value to 12Bit
+    TCD0_CCA = 0x5b7;           //Set blue color
+    TCD0_CCC = 0x555;           //Set red color
+    TCD0_CTRLA = 1;	        //Start Timer Clk/1
 }
 
 //        LDI   R18, 0x00

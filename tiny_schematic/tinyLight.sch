@@ -7505,7 +7505,7 @@ DC Power Connectors RT ANG SU MT W/PLAS</description>
 <part name="+3V2" library="supply1" deviceset="+3V3" device=""/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
 <part name="C1" library="rcl" deviceset="C-EU" device="C2012" value="10µF"/>
-<part name="C2" library="rcl" deviceset="C-EU" device="C2012" value="110µF"/>
+<part name="C2" library="rcl" deviceset="C-EU" device="C2012" value="10µF"/>
 <part name="P+1" library="supply1" deviceset="+5V" device=""/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
 <part name="R9" library="rcl" deviceset="R-EU_" device="M2012" value="150"/>

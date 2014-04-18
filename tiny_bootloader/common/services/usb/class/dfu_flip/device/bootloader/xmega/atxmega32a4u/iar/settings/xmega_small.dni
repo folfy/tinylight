@@ -9,13 +9,16 @@ TriggerName=main
 LimitSize=0
 ByteLimit=50
 [DebugChecksum]
-Checksum=-1071599983
-[Breakpoints]
-Count=0
+Checksum=-466739140
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
 Category=_ 0
+[Breakpoints]
+Count=0
 [Aliases]
 Count=0
 SuppressDialog=0
+[Trace1]
+Enabled=0
+ShowSource=1

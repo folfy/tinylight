@@ -219,6 +219,8 @@ jump_0:
         CLR   R18
         STS   TCD0_CTRLA, R18
         STS   TCD0_CTRLB, R18
+        lDI   R18, 0xC
+        STS   TCD0_CTRLFSET, R18
         LDI   R18, PIN0_bm
         STS   PORTD_DIRCLR, R18
 	JMP   0
