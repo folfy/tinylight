@@ -199,8 +199,7 @@ int main (void)
 		
 	while(1)
 	{
-		if (usb_data_pending) 
-			read_USB();
+		handle_usb();
 		if(set.mode==mode_off)
 			power_down();
 		else
@@ -276,7 +275,7 @@ void button_update(Bool key_state)
 				{
 					case mode_mood_lamp:	mode_update(mode_rainbow); break;
 					case mode_rainbow:		mode_update(mode_colorswirl); break;
-					//case mode_colorswirl:	mode_update(mode_mood_lamp); break;
+					case mode_colorswirl:	mode_update(mode_usb_ada); break;
 					default:				mode_update(mode_mood_lamp); break;
 				}
 			}
@@ -952,7 +951,7 @@ void TCD1_OVF_int(void)
 
 void DMA_Led_int(dma_callback_t state)
 {
-	if(!(set.mode & state_multi) && (set.mode & state_on))
+	if(!(set.mode & state_multi))
 		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
 	tc_restart(&TCD1);
 	tc_set_resolution(&TCD1,500000);
@@ -975,9 +974,25 @@ void main_cdc_rx_notify(uint8_t port)
 	usb_data_pending = true;
 }
 
-void read_USB(void)
+
+#define usb_state_preamble		0
+#define usb_state_cmd			1
+#define usb_state_raw			2
+#define usb_state_set_read		3
+#define usb_state_set_write		4
+#define usb_state_ada_header	5
+#define usb_state_ada_raw		6
+
+void handle_usb(void)
 {
-	if (update_USB() & !timeout_flag)
+	//finite state machine
+	static uint_fast8_t usb_state=0;
+	if (usb_data_pending)
+	{
+		//switch(usb_state)
+		
+	}
+	if (read_usb() & !timeout_flag)
 	udi_cdc_putc(ack);
 	else
 	{
@@ -989,7 +1004,7 @@ void read_USB(void)
 }
 
 
-Bool update_USB(void)
+Bool read_usb(void)
 {
 	uint_fast8_t set_addr;
 	uint_fast8_t set_value;

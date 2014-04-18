@@ -78,8 +78,8 @@ void dma_init(void);
 void SPI_start(void);
 
 void main_cdc_rx_notify(uint8_t port);
-void read_USB(void);
-Bool update_USB(void);
+void handle_usb(void);
+Bool read_usb(void);
 uint_fast8_t get_USB_char(void);
 
 #endif /* MAIN_H_ */
