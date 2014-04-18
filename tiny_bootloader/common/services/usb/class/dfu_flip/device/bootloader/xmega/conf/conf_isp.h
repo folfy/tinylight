@@ -79,10 +79,10 @@
 # define ISP_PORT_IN       PORTE_IN
 # define ISP_PORT_PIN      5
 #elif (XMEGA_A4U || XMEGA_C4)
-# define ISP_PORT_DIR      PORTE_DIR
-# define ISP_PORT_PINCTRL  PORTE_PIN3CTRL
-# define ISP_PORT_IN       PORTE_IN
-# define ISP_PORT_PIN      3
+# define ISP_PORT_DIR      PORTR_DIR
+# define ISP_PORT_PINCTRL  PORTR_PIN0CTRL
+# define ISP_PORT_IN       PORTR_IN
+# define ISP_PORT_PIN      0
 #elif XMEGA_B
 # define ISP_PORT_DIR      PORTC_DIR
 # define ISP_PORT_PINCTRL  PORTC_PIN6CTRL
