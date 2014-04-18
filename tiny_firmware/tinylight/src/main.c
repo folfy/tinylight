@@ -178,10 +178,7 @@ int main (void)
 			udc_attach();
 		PORTD_INTCTRL = 1;
 	}
-	if (set.default_mode & mode_prev)
-		mode_update(set.default_mode & !mode_prev);
-	else
-		mode_update(set.default_mode);	
+	mode_update(set.default_mode & !mode_prev);
 		
 	while(1)
 	{
