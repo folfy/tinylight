@@ -24,14 +24,11 @@
  *	TCD1:	DMA-Wait
  */
 
-#define IR_avail
-
 #include "main.h"
 #include "tiny_protocol.h"
 #include <stdio.h>
 #include <asf.h>
 #include <avr/io.h>
-//#include <util/delay.h>
 #include <avr/interrupt.h>
 #include "mul16x16.h"
 #include "data.h"
@@ -40,7 +37,7 @@
 
 // framerate statistics
 uint_fast16_t volatile FPS = 0;
-uint_fast16_t volatile count = 0;
+uint_fast16_t volatile frame_count = 0;
 
 uint_fast8_t back_buffer[480];
 uint_fast8_t front_buffer[480];
@@ -71,7 +68,7 @@ void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 #endif
 void DMA_Led_int(dma_callback_t state);
 
-//Status_LED, FPS count
+//Button, Status_LED, FPS count
 void RTC_Alarm(uint32_t time)
 {
 	const uint_fast16_t alarm = 0.0125*RTC_cycle;
@@ -107,9 +104,9 @@ void RTC_Alarm(uint32_t time)
 	fps_time+=alarm;
 	if(fps_time >= 1*RTC_cycle)
 	{
-		FPS = count;
+		FPS = frame_count;
 		fps_time = 0;
-		count=0;
+		frame_count=0;
 	}
 	
 	if(time > (UINT32_MAX-RTC_cycle*3600*24))	//prevent rtc overflow if there are less than 24h remaining
@@ -181,10 +178,7 @@ int main (void)
 			udc_attach();
 		PORTD_INTCTRL = 1;
 	}
-	if (set.default_mode & mode_prev)
-		mode_update(set.default_mode & !mode_prev);
-	else
-		mode_update(set.default_mode);	
+	mode_update(set.default_mode & !mode_prev);
 		
 	while(1)
 	{
@@ -650,6 +644,26 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 void read_settings(void)
 {
 	nvm_eeprom_read_buffer(set_EE_offset*EEPROM_PAGE_SIZE, &set, sizeof(set));
+	if(set.default_mode==0xFF)
+	{
+		set.default_mode	=	mode_prev;
+		set.timeout_mode	=	mode_off;
+		set.timeout_time	=	timeout_vbus;
+		set.default_alpha	=	0xFF;
+		set.gamma			=	2.2		*10;	//alpha=2.2
+		set.smooth_time		=	5		*2;		//time=5s
+		set.alpha_min		=	0;
+		set.lux_max			=	1000	/40;	//brightness=1000lux
+		set.stat_LED		=	50		*2.55;	//50%
+		set.stb_LED			=	5		*2.55;	//5%
+		set.count			=	80;
+		set.OCP				=	ocp_off;
+		set.OCP_time		=	0;
+		set.SCP				=	scp_off;
+		set.UVP				=	uvp_off;
+		save_settings();
+	}
+	set.alpha=set.default_alpha;
 };
 
 void save_settings(void)
@@ -713,13 +727,6 @@ void gamma_map(void)
 		run=0;
 }
 
-uint_fast16_t multi(uint_fast16_t a, uint_fast16_t b)
-{
-	uint_fast16_t result;
-	MultiU16X16toH16Round(result,a,b);
-	return result;
-}
-
 void gamma_calc(void)
 {
 	//split gamma in full exponentiations and 10th roots
@@ -738,11 +745,11 @@ void gamma_calc(void)
 		uint_fast16_t root=(nvm_flash_read_byte( (flash_addr_t) &root_10[x]+1) <<8)+nvm_flash_read_byte( (flash_addr_t) &root_10[x]);
 		
 		for(uint_fast8_t cnt=gamma_pot;cnt;cnt--)
-		y=multi(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
+		y=MulU16X16toH16Round(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
 		for(uint_fast8_t cnt=gamma_dec;cnt;cnt--)
-		y=multi(y,root);
+		y=MulU16X16toH16Round(y,root);
 		
-		gamma_lut[x]=multi(y,1020);
+		gamma_lut[x]=MulU16X16toH16Round(y,1020);
 		
 		if(x==255)
 			break;
@@ -812,9 +819,9 @@ void Colorswirl(uint_fast8_t anzahl_Leds)
 			sine2 += rad_3;	// 0.3 rad
 		}
 		hue1   = (hue1 + 4) % 1536;
-		sine1 += rad_03;		// 0.03 rad
+		sine1 -= rad_03;		// 0.03 rad
 		if(sine1>=deg360)
-			sine1-=deg360;
+			sine1-=(UINT_FAST16_MAX-deg360);
 		frame_update(true);
 	}
 }
@@ -957,7 +964,7 @@ void TCD1_OVF_int(void)
 		dma_channel_enable(DMA_CHANNEL_LED);
 		update_frame = false;
 	}
-	count +=1;
+	frame_count++;
 }
 
 void DMA_Led_int(dma_callback_t state)
@@ -1001,15 +1008,14 @@ Bool read_USB(void)
 		for(uint_fast8_t i=1;i<sizeof(pre_ada);i++)
 		{
 			if (get_USB_char() != pre_ada[i])
+				return false;
+		}
+		char cnt_h=get_USB_char();
+		char cnt_l=get_USB_char();
+		if((cnt_l^cnt_h)!=get_USB_char())
 			return false;
-		}
-		get_USB_char();
-		char temp=get_USB_char();
-		if(temp!=set.count)
-		{
-			set.count=get_USB_char();
-			SetupDMA(true);
-		}
+		set.count=cnt_l;
+		SetupDMA(true);
 		set.mode=mode_usb_ada;
 		return true;
 	}
@@ -1017,8 +1023,10 @@ Bool read_USB(void)
 	switch (get_USB_char())
 	{
 		case cmd_test:		udi_cdc_write_buf(&response,sizeof(response));
+							udi_cdc_putc(protocol_rev);
+							udi_cdc_putc(software_rev);
+							udi_cdc_putc(board_rev);
 							udi_cdc_putc(set.mode);
-							udi_cdc_putc(Version);
 							break;
 		case cmd_raw_data:	//if(set.mode == mode_single_led)
 		switch(set.mode)
@@ -1049,13 +1057,15 @@ Bool read_USB(void)
 		//}
 		break;
 		case cmd_measure:	udi_cdc_putc(measure.voltage >> 8);
-		udi_cdc_putc(measure.voltage);
-		udi_cdc_putc(measure.current >> 8);
-		udi_cdc_putc(measure.current);
-		udi_cdc_putc(measure.light >> 8);
-		udi_cdc_putc(measure.light);
-		udi_cdc_putc(measure.temp);
-		break;
+							udi_cdc_putc(measure.voltage);
+							udi_cdc_putc(measure.current >> 8);
+							udi_cdc_putc(measure.current);
+							udi_cdc_putc(measure.light >> 8);
+							udi_cdc_putc(measure.light);
+							udi_cdc_putc(measure.temp);
+							udi_cdc_putc(FPS >> 8);
+							udi_cdc_putc(FPS);
+							break;
 		case cmd_set_read:	switch(get_USB_char())
 							{
 								case set_mode:				udi_cdc_putc(set.mode);			break;
@@ -1081,23 +1091,23 @@ Bool read_USB(void)
 							set_value = get_USB_char(); if (set_value != get_USB_char()) return false;
 							switch(set_addr)
 							{
-								case set_mode:				mode_update(set_value);			break;
-								case set_default_mode:		set.default_mode = set_value;	break;
-								case set_timeout_mode:		set.timeout_mode = set_value;	break;
-								case set_timeout_time:		set.timeout_time = set_value;	break;
-								case set_alpha:				set.alpha = set_value;			break;
-								case set_default_alpha:		set.default_alpha = set_value;	break;
-								case set_gamma:				set.gamma = set_value;			break;
-								case set_smooth_time:		set.smooth_time = set_value;	break;
-								case set_alpha_min:			set.alpha_min = set_value;		break;
-								case set_lux_max:			set.lux_max = set_value;		break;
-								case set_stat_Led:			set.stat_LED = set_value;		break;
-								case set_stb_Led:			set.stb_LED = set_value;		break;
-								case set_count:				set.count = set_value;			break;
-								case set_OCP:				set.OCP = set_value;			break;
-								case set_OCP_time:			set.OCP_time = set_value;		break;
-								case set_SCP:				set.SCP = set_value;			break;
-								case set_UVP:				set.UVP = set_value;			break;
+								case set_mode:				mode_update(set_value);					break;
+								case set_default_mode:		set.default_mode = set_value;			break;
+								case set_timeout_mode:		set.timeout_mode = set_value;			break;
+								case set_timeout_time:		set.timeout_time = set_value;			break;
+								case set_alpha:				set.alpha = set_value;					break;
+								case set_default_alpha:		set.default_alpha = set_value;			break;
+								case set_gamma:				set.gamma = set_value; gamma_calc();	break;
+								case set_smooth_time:		set.smooth_time = set_value;			break;
+								case set_alpha_min:			set.alpha_min = set_value;				break;
+								case set_lux_max:			set.lux_max = set_value;				break;
+								case set_stat_Led:			set.stat_LED = set_value;				break;
+								case set_stb_Led:			set.stb_LED = set_value;				break;
+								case set_count:				set.count = set_value;					break;
+								case set_OCP:				set.OCP = set_value;					break;
+								case set_OCP_time:			set.OCP_time = set_value;				break;
+								case set_SCP:				set.SCP = set_value;					break;
+								case set_UVP:				set.UVP = set_value;					break;
 								default: return false;
 							}
 							break;

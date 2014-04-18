@@ -597,6 +597,9 @@
     <Compile Include="src\main.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\mul16x16.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\mul16x16.h">
       <SubType>compile</SubType>
     </Compile>

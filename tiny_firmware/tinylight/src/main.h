@@ -10,8 +10,16 @@
 
 #include <usb_protocol_cdc.h>
 
+#define board_rev 0x10
+//#define board_rev 0x01	//Debug-Board (alpha)
+/*	uncomment definition to enable additional hardware modules	*/
+//#define IR_avail			//IR-Receiver
+//#define RF_avail 1		//RF-Transceiver
+//#define RF_avail 2		//BT-Transceiver
+//#define UART_avail		//UART-Port
+
+#define software_rev 0x03
 #define F_CPU 32000000
-#define Version 0x01
 #define RTC_cycle 32768/16
 
 typedef struct {
@@ -58,7 +66,7 @@ void status_bar(uint_fast16_t Wert, uint_fast16_t Wert_max, uint_fast8_t anzahl_
 
 void frame_update(Bool buffer_update);
 void gamma_map(void);
-uint_fast16_t multi(uint_fast16_t a, uint_fast16_t b);
+
 void gamma_calc(void);
 
 void Mood_Lamp(uint_fast8_t anzahl_Leds);
