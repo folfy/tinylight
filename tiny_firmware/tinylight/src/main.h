@@ -62,8 +62,6 @@ void status_led_blink(void);
 void read_settings(void);
 void save_settings(void);
 
-void status_bar(uint_fast16_t Wert, uint_fast16_t Wert_max, uint_fast8_t anzahl_Leds);
-
 void frame_update(Bool buffer_update);
 void gamma_map(void);
 
@@ -80,7 +78,8 @@ void dma_init(void);
 void SPI_start(void);
 
 void main_cdc_rx_notify(uint8_t port);
-Bool read_USB(void);
+void read_USB(void);
+Bool update_USB(void);
 uint_fast8_t get_USB_char(void);
 
 #endif /* MAIN_H_ */

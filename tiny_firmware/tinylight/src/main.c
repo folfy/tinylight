@@ -93,12 +93,16 @@ void RTC_Alarm(uint32_t time)
 	
 	const uint_fast16_t led_alarm = 0.5*RTC_cycle;
 	static uint_fast16_t led_time = 0;
-	led_time+=alarm;
-	if((led_time >= led_alarm) && blink_en)
+	if(led_time >= led_alarm)
 	{
-		status_led_blink();
-		led_time=0;
+		if(blink_en)
+		{
+			status_led_blink();
+			led_time=alarm;			
+		}
 	}
+	else
+		led_time+=alarm;
 	
 	static uint_fast16_t fps_time = 0;
 	fps_time+=alarm;
@@ -108,6 +112,19 @@ void RTC_Alarm(uint32_t time)
 		fps_time = 0;
 		frame_count=0;
 	}
+	
+	const uint_fast16_t ack_alarm = 1*RTC_cycle;
+	static uint_fast16_t ack_time = 0;
+	if(ack_time >= ack_alarm)
+	{
+		if(set.mode==mode_usb_ada)
+		{
+			udi_cdc_write_buf(&ack_ada,sizeof(ack_ada));
+			ack_time = alarm;			
+		}
+	}
+	else
+		ack_time+=alarm;
 	
 	if(time > (UINT32_MAX-RTC_cycle*3600*24))	//prevent rtc overflow if there are less than 24h remaining
 	{
@@ -178,32 +195,18 @@ int main (void)
 			udc_attach();
 		PORTD_INTCTRL = 1;
 	}
-	if (set.default_mode & mode_prev)
-		mode_update(set.default_mode & !mode_prev);
-	else
-		mode_update(set.default_mode);	
+	mode_update(set.default_mode & !mode_prev);
 		
 	while(1)
 	{
 		if (usb_data_pending) 
-		{
-			if (read_USB() & !timeout_flag)		
-				udi_cdc_putc(ack);
-			else 
-			{ 
-				timeout_flag = false;
-				udi_cdc_putc(nack);
-			}
-			usb_data_pending = false;
-			while(udi_cdc_is_rx_ready()) udi_cdc_getc();
-		}
+			read_USB();
 		if(set.mode==mode_off)
 			power_down();
 		else
 		{
 			switch (set.mode)
 			{
-				//case mode_light_bar:	status_bar(measure.light, 4000, set.count); SPI_start(); break;
 				case mode_mood_lamp:	Mood_Lamp(set.count); break;
 				case mode_rainbow:		Rainbow(set.count);	break;
 				case mode_colorswirl:	Colorswirl(set.count); break;
@@ -866,29 +869,6 @@ void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t rgb_buffer[])
 	}
 }
 
-void status_bar(uint_fast16_t val, uint_fast16_t range, uint_fast8_t anzahl_Leds)
-{
-	static uint8_t R=255, G=255, B=255;
-	range = range / anzahl_Leds;
-	for (uint_fast8_t k=0;k<=(anzahl_Leds*3 - 3);k+=3)
-	{
-		uint_fast16_t temp = ((k/3)+1) * range;
-		if ( val / temp > 0)
-		{
-			back_buffer[k]	=R;		//R
-			back_buffer[k+1]=G;		//G
-			back_buffer[k+2]=B;		//B
-		}
-		else
-		{
-			back_buffer[k]	=0;
-			back_buffer[k+1]=0;
-			back_buffer[k+2]=0;
-		}
-	}
-	frame_update(true);
-}
-
 /*	~~~~~~~~~~~~~~~~~~~~~~~	 DMA/LED	~~~~~~~~~~~~~~~~~~~~~~~ */
 
 struct dma_channel_config dmach_conf_single;
@@ -995,7 +975,21 @@ void main_cdc_rx_notify(uint8_t port)
 	usb_data_pending = true;
 }
 
-Bool read_USB(void)
+void read_USB(void)
+{
+	if (update_USB() & !timeout_flag)
+	udi_cdc_putc(ack);
+	else
+	{
+		timeout_flag = false;
+		udi_cdc_putc(nack);
+	}
+	usb_data_pending = false;
+	while(udi_cdc_is_rx_ready()) udi_cdc_getc();
+}
+
+
+Bool update_USB(void)
 {
 	uint_fast8_t set_addr;
 	uint_fast8_t set_value;
@@ -1015,7 +1009,7 @@ Bool read_USB(void)
 		}
 		char cnt_h=get_USB_char();
 		char cnt_l=get_USB_char();
-		if((cnt_l^cnt_h)!=get_USB_char())
+		if((cnt_l^cnt_h^0x55)!=get_USB_char())
 			return false;
 		set.count=cnt_l;
 		SetupDMA(true);
@@ -1041,23 +1035,6 @@ Bool read_USB(void)
 			default:				return false;
 
 		}
-		//if (color_buffer[0] == 'A' & color_buffer[1] == 'd' & color_buffer[2] == 'a')
-		//{
-		//uint_fast8_t temp;
-		//temp = udi_cdc_getc();
-		//temp = udi_cdc_getc() + 1;
-		//if (Led_anzahl != temp)
-		//{
-		//Led_anzahl = temp;
-		//SetupDMA_CH1();
-		//}
-		//temp = udi_cdc_getc();
-		//}
-		//else i=3;
-		//for(;i<Led_anzahl*3;i++)
-		//{
-		//color_buffer[i] = udi_cdc_getc() / brightness;
-		//}
 		break;
 		case cmd_measure:	udi_cdc_putc(measure.voltage >> 8);
 							udi_cdc_putc(measure.voltage);
