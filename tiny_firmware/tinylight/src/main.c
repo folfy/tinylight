@@ -20,7 +20,6 @@
  *	PE3:	D_IN:		Pushbutton
  *
  *	TCD0:	PWM Status Led
- *	RTC:	Blink Status Led
  *	TCD1:	DMA-Wait
  */
 
@@ -39,8 +38,8 @@
 uint_fast16_t volatile FPS = 0;
 uint_fast16_t volatile frame_count = 0;
 
-uint_fast8_t back_buffer[480];
-uint_fast8_t front_buffer[480];
+uint_fast8_t back_buffer[buffer_size*3];
+uint_fast8_t front_buffer[buffer_size*3];
 
 volatile Bool timeout_flag = false;
 
@@ -89,7 +88,7 @@ void RTC_Alarm(uint32_t time)
 		button_mem=button_state;
 	}
 	if(button_state & ( rtc_get_time() > (button_time+button_reset) ))
-		reset_do_soft_reset();
+		reset(true);
 	
 	const uint_fast16_t led_alarm = 0.5*RTC_cycle;
 	static uint_fast16_t led_time = 0;
@@ -240,6 +239,18 @@ void power_down(void)
 	sleeping = false;
 }
 
+void reset(Bool bootloader)
+{
+	if(bootloader)
+	{
+		//reset via watchdog to get into bootloader
+		wdt_set_timeout_period(WDT_TIMEOUT_PERIOD_8CLK);
+		wdt_enable();
+	}
+	else
+		reset_do_soft_reset();
+}
+
 void button_update(Bool key_state)
 {
 	if(set.mode==mode_off)
@@ -299,6 +310,15 @@ void mode_update(uint_fast8_t mode)
 		else
 			ioport_set_pin_level(MOSFET_en,LOW);
 		status_led_update();
+	}
+}
+
+void count_update(uint_fast8_t count)
+{
+	if(set.count!=count)
+	{
+		set.count=count;
+		dma_init();
 	}
 }
 
@@ -649,6 +669,7 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 void read_settings(void)
 {
 	nvm_eeprom_read_buffer(set_EE_offset*EEPROM_PAGE_SIZE, &set, sizeof(set));
+	set.mode=mode_off;				//prevent undefined state during startup
 	if(set.default_mode==0xFF)
 	{
 		set.default_mode	=	mode_prev;
@@ -974,155 +995,183 @@ void main_cdc_rx_notify(uint8_t port)
 	usb_data_pending = true;
 }
 
-
-#define usb_state_preamble		0
-#define usb_state_cmd			1
-#define usb_state_raw			2
-#define usb_state_set_read		3
-#define usb_state_set_write		4
-#define usb_state_ada_header	5
-#define usb_state_ada_raw		6
-
 void handle_usb(void)
 {
 	//finite state machine
 	static uint_fast8_t usb_state=0;
+	char usb_buff[4];
+	
+	static uint_fast32_t usb_rx_time=0;
+	static uint_fast8_t usb_state_prev=0; 
+	uint_fast32_t time=rtc_get_time();
+	if(usb_state_prev!=usb_state)
+	{
+		usb_rx_time=time;
+		usb_state_prev=usb_state;
+	}
+	if((usb_state!=usb_state_preamble)	&& (time>=(usb_rx_time+0.2*RTC_cycle)))
+		usb_state=nack_flush(nack_timeout|usb_state);
+	if((set.mode&state_usb)				&& (time>=(usb_rx_time+set.timeout_time*RTC_cycle/10)))
+		mode_update(set.timeout_mode);
+		
 	if (usb_data_pending)
 	{
-		//switch(usb_state)
-		
+		switch(usb_state)
+		{
+			case usb_state_preamble:	if(udi_cdc_get_nb_received_data()>=3)
+										{
+											udi_cdc_read_buf(&usb_buff,3);
+											if(string_parser(usb_buff,preamble,3))
+												usb_state=usb_state_cmd;
+											else if(string_parser(usb_buff,pre_ada,3))
+												usb_state=usb_state_ada_header;
+											else
+												usb_state=nack_flush(nack_preamble);									
+										}
+										break;
+			case usb_state_ada_header:	if(udi_cdc_get_nb_received_data()>=3)
+										{
+											udi_cdc_read_buf(&usb_buff,3);
+											if((usb_buff[0]^usb_buff[1]^0x55)==usb_buff[2])
+											{
+												if(!usb_buff[0] && (usb_buff[1]<=buffer_size))
+												{
+													count_update(usb_buff[1]);
+													mode_update(mode_usb_ada);
+													usb_state=usb_state_ada_raw;
+												}
+												else
+													usb_state=nack_flush(nack_ada_length);
+											}
+											else
+												usb_state=nack_flush(nack_ada_crc);
+										}
+										break;
+			case usb_state_ada_raw:		
+										
+										break;
+			case usb_state_cmd:			switch(udi_cdc_getc())
+										{
+											case cmd_test:		udi_cdc_write_buf(&response,sizeof(response));
+																udi_cdc_putc(protocol_rev);
+																udi_cdc_putc(software_rev);
+																udi_cdc_putc(board_rev);
+																udi_cdc_putc(set.mode);
+																usb_state=usb_state_preamble;
+																break;
+											case cmd_raw_data:	if(set.mode==mode_usb_single)
+																	usb_state=send_ack(usb_state_raw_single);
+																else if(set.mode==mode_usb_multi)
+																	usb_state=send_ack(usb_state_raw_multi);
+																else
+																	usb_state=nack_flush(nack_raw_mode);
+																break;
+											case cmd_measure:	udi_cdc_putc(measure.voltage >> 8);
+																udi_cdc_putc(measure.voltage);
+																udi_cdc_putc(measure.current >> 8);
+																udi_cdc_putc(measure.current);
+																udi_cdc_putc(measure.light >> 8);
+																udi_cdc_putc(measure.light);
+																udi_cdc_putc(measure.temp);
+																udi_cdc_putc(FPS >> 8);
+																udi_cdc_putc(FPS);
+																usb_state=usb_state_preamble;
+																break;
+											case cmd_set_read:	usb_state=usb_state_set_read;
+																break;
+											case cmd_set_write:	usb_state=usb_state_set_write;
+																break;
+											case cmd_set_save:	save_settings();
+																usb_state=send_ack(usb_state_preamble);
+																break;
+											default:			usb_state=nack_flush(nack_command);
+																break;
+										}
+										break;
+			case usb_state_raw_single:	if(udi_cdc_get_nb_received_data()>=3)
+										{
+											udi_cdc_read_buf(&back_buffer,3);
+											frame_update(true);									
+										}
+			case usb_state_raw_multi:	usb_state=nack_flush(nack);
+										break;
+			case usb_state_set_read:	switch(udi_cdc_getc())
+										{
+											case set_mode:				udi_cdc_putc(set.mode);					break;
+											case set_default_mode:		udi_cdc_putc(set.default_mode);			break;
+											case set_timeout_mode:		udi_cdc_putc(set.timeout_mode);			break;
+											case set_timeout_time:		udi_cdc_putc(set.timeout_time);			break;
+											case set_alpha:				udi_cdc_putc(set.alpha);				break;
+											case set_default_alpha:		udi_cdc_putc(set.default_alpha);		break;
+											case set_gamma:				udi_cdc_putc(set.gamma);				break;
+											case set_smooth_time:		udi_cdc_putc(set.smooth_time);			break;
+											case set_alpha_min:			udi_cdc_putc(set.alpha_min);			break;
+											case set_lux_max:			udi_cdc_putc(set.lux_max);				break;
+											case set_stat_Led:			udi_cdc_putc(set.stat_LED);				break;
+											case set_stb_Led:			udi_cdc_putc(set.stb_LED);				break;
+											case set_count:				udi_cdc_putc(set.count);				break;
+											case set_OCP:				udi_cdc_putc(set.OCP);					break;
+											case set_OCP_time:			udi_cdc_putc(set.OCP_time);				break;
+											case set_SCP:				udi_cdc_putc(set.SCP);					break;
+											case set_UVP:				udi_cdc_putc(set.UVP);					break;
+											default:					usb_state=nack_flush(nack_read_add);	break;
+										}
+										break;
+			case usb_state_set_write:	if(udi_cdc_get_nb_received_data()>=4)
+										{
+											udi_cdc_read_buf(&usb_buff,4);
+											if((usb_buff[0]==usb_buff[1])&&(usb_buff[2]==usb_buff[3]))
+												switch(usb_buff[0])
+												{
+													case set_mode:				mode_update(usb_buff[2]);				break;
+													case set_default_mode:		set.default_mode = usb_buff[2];			break;
+													case set_timeout_mode:		set.timeout_mode = usb_buff[2];			break;
+													case set_timeout_time:		set.timeout_time = usb_buff[2];			break;
+													case set_alpha:				set.alpha = usb_buff[2];				break;
+													case set_default_alpha:		set.default_alpha = usb_buff[2];		break;
+													case set_gamma:				set.gamma = usb_buff[2]; gamma_calc();	break;
+													case set_smooth_time:		set.smooth_time = usb_buff[2];			break;
+													case set_alpha_min:			set.alpha_min = usb_buff[2];			break;
+													case set_lux_max:			set.lux_max = usb_buff[2];				break;
+													case set_stat_Led:			set.stat_LED = usb_buff[2];				break;
+													case set_stb_Led:			set.stb_LED = usb_buff[2];				break;
+													case set_count:				count_update(usb_buff[2]);				break;
+													case set_OCP:				set.OCP = usb_buff[2];					break;
+													case set_OCP_time:			set.OCP_time = usb_buff[2];				break;
+													case set_SCP:				set.SCP = usb_buff[2];					break;
+													case set_UVP:				set.UVP = usb_buff[2];					break;
+													default:					usb_state=nack_flush(nack_write_add);	break;
+												}
+											else
+												usb_state=nack_flush(nack_write_crc);
+										}										
+										break;
+		}
+		usb_data_pending=udi_cdc_is_rx_ready();
 	}
-	if (read_usb() & !timeout_flag)
-	udi_cdc_putc(ack);
-	else
-	{
-		timeout_flag = false;
-		udi_cdc_putc(nack);
-	}
-	usb_data_pending = false;
-	while(udi_cdc_is_rx_ready()) udi_cdc_getc();
 }
 
-
-Bool read_usb(void)
+uint_fast8_t send_ack(uint_fast8_t new_mode)
 {
-	uint_fast8_t set_addr;
-	uint_fast8_t set_value;
-	char usb_rx=get_USB_char();
-	if(usb_rx==preamble[0])
-	for(uint_fast8_t i=1;i<sizeof(preamble);i++)
-	{
-		if (get_USB_char() != preamble[i])
-		return false;
-	}
-	else if(usb_rx==pre_ada[0])
-	{
-		for(uint_fast8_t i=1;i<sizeof(pre_ada);i++)
-		{
-			if (get_USB_char() != pre_ada[i])
-				return false;
-		}
-		char cnt_h=get_USB_char();
-		char cnt_l=get_USB_char();
-		if((cnt_l^cnt_h^0x55)!=get_USB_char())
-			return false;
-		set.count=cnt_l;
-		SetupDMA(true);
-		set.mode=mode_usb_ada;
-		return true;
-	}
-	
-	switch (get_USB_char())
-	{
-		case cmd_test:		udi_cdc_write_buf(&response,sizeof(response));
-							udi_cdc_putc(protocol_rev);
-							udi_cdc_putc(software_rev);
-							udi_cdc_putc(board_rev);
-							udi_cdc_putc(set.mode);
-							break;
-		case cmd_raw_data:	//if(set.mode == mode_single_led)
-		switch(set.mode)
-		{	case mode_usb_single:	udi_cdc_read_buf(&back_buffer,3);
-									frame_update(true);
-									break;
-			case mode_usb_multi:	return false;
-									break;
-			default:				return false;
+	udi_cdc_putc(ack);
+	return new_mode;
+}
 
-		}
-		break;
-		case cmd_measure:	udi_cdc_putc(measure.voltage >> 8);
-							udi_cdc_putc(measure.voltage);
-							udi_cdc_putc(measure.current >> 8);
-							udi_cdc_putc(measure.current);
-							udi_cdc_putc(measure.light >> 8);
-							udi_cdc_putc(measure.light);
-							udi_cdc_putc(measure.temp);
-							udi_cdc_putc(FPS >> 8);
-							udi_cdc_putc(FPS);
-							break;
-		case cmd_set_read:	switch(get_USB_char())
-							{
-								case set_mode:				udi_cdc_putc(set.mode);			break;
-								case set_default_mode:		udi_cdc_putc(set.default_mode);	break;
-								case set_timeout_mode:		udi_cdc_putc(set.timeout_mode);	break;
-								case set_timeout_time:		udi_cdc_putc(set.timeout_time);	break;
-								case set_alpha:				udi_cdc_putc(set.alpha);		break;
-								case set_default_alpha:		udi_cdc_putc(set.default_alpha);break;
-								case set_gamma:				udi_cdc_putc(set.gamma);		break;
-								case set_smooth_time:		udi_cdc_putc(set.smooth_time);	break;
-								case set_alpha_min:			udi_cdc_putc(set.alpha_min);	break;
-								case set_lux_max:			udi_cdc_putc(set.lux_max);		break;
-								case set_stat_Led:			udi_cdc_putc(set.stat_LED);		break;
-								case set_stb_Led:			udi_cdc_putc(set.stb_LED);		break;
-								case set_count:				udi_cdc_putc(set.count);		break;
-								case set_OCP:				udi_cdc_putc(set.OCP);			break;
-								case set_OCP_time:			udi_cdc_putc(set.OCP_time);		break;
-								case set_SCP:				udi_cdc_putc(set.SCP);			break;
-								case set_UVP:				udi_cdc_putc(set.UVP);			break;
-							}
-							break;
-		case cmd_set_write:	set_addr  = get_USB_char(); if (set_addr  != get_USB_char()) return false;
-							set_value = get_USB_char(); if (set_value != get_USB_char()) return false;
-							switch(set_addr)
-							{
-								case set_mode:				mode_update(set_value);					break;
-								case set_default_mode:		set.default_mode = set_value;			break;
-								case set_timeout_mode:		set.timeout_mode = set_value;			break;
-								case set_timeout_time:		set.timeout_time = set_value;			break;
-								case set_alpha:				set.alpha = set_value;					break;
-								case set_default_alpha:		set.default_alpha = set_value;			break;
-								case set_gamma:				set.gamma = set_value; gamma_calc();	break;
-								case set_smooth_time:		set.smooth_time = set_value;			break;
-								case set_alpha_min:			set.alpha_min = set_value;				break;
-								case set_lux_max:			set.lux_max = set_value;				break;
-								case set_stat_Led:			set.stat_LED = set_value;				break;
-								case set_stb_Led:			set.stb_LED = set_value;				break;
-								case set_count:				set.count = set_value;					break;
-								case set_OCP:				set.OCP = set_value;					break;
-								case set_OCP_time:			set.OCP_time = set_value;				break;
-								case set_SCP:				set.SCP = set_value;					break;
-								case set_UVP:				set.UVP = set_value;					break;
-								default: return false;
-							}
-							break;
-		case cmd_set_save:	save_settings(); /*eeprom_write_block(&set, (uint8_t *) set_EE_offset, sizeof(set));*/ break;
-		default:			return false;
+uint_fast8_t nack_flush(uint_fast8_t fault_code)
+{
+	udi_cdc_putc(nack_preamble);
+	while(udi_cdc_is_rx_ready())
+		udi_cdc_getc();
+	return usb_state_preamble;
+}
+
+Bool string_parser(char buff_a[], const char buff_b[], uint_fast8_t length)
+{
+	uint_fast8_t index;
+	for(index=0;index<length;index++);
+	{
+		if(buff_a[index]!=buff_b[index])
+			return false;
 	}
 	return true;
-}
-
-#define CMD_timeout 0xfffe
-
-uint_fast8_t get_USB_char(void)
-{
-	if (!timeout_flag)
-	{
-		for (uint_fast16_t i = 0; i < CMD_timeout; i++)
-		{
-			if(udi_cdc_is_rx_ready()) {timeout_flag = false; return udi_cdc_getc();}
-		}
-	}
-	timeout_flag = true;
-	return 0;
 }

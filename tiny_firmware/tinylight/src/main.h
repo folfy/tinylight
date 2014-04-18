@@ -21,6 +21,7 @@
 #define software_rev 0x03
 #define F_CPU 32000000
 #define RTC_cycle 32768/16
+#define buffer_size 160
 
 typedef struct {
 	uint_fast8_t volatile mode;
@@ -51,9 +52,11 @@ typedef struct {
 
 void callback_init(void);
 void power_down(void);
+void reset(Bool bootloader);
 
 void button_update(Bool key_state);
 void mode_update(uint_fast8_t mode);
+void count_update(uint_fast8_t count);
 
 void status_led_update(void);
 void status_led_off(void);
@@ -77,9 +80,9 @@ void SetupDMA(Bool multi);
 void dma_init(void);
 void SPI_start(void);
 
-void main_cdc_rx_notify(uint8_t port);
 void handle_usb(void);
-Bool read_usb(void);
-uint_fast8_t get_USB_char(void);
+uint_fast8_t send_ack(uint_fast8_t new_mode);
+uint_fast8_t nack_flush(uint_fast8_t fault_code);
+Bool string_parser(char buff_a[], const char buff_b[], uint_fast8_t length);
 
 #endif /* MAIN_H_ */
