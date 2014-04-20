@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="50" unitdist="mil" unit="mil" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
@@ -524,7 +524,7 @@ W = angled&lt;p&gt;
 <plain>
 </plain>
 <instances>
-<instance part="SV1" gate="G$1" x="2.54" y="22.86"/>
+<instance part="SV1" gate="G$1" x="2.54" y="20.32"/>
 <instance part="BT1" gate="G$1" x="21.59" y="11.43"/>
 </instances>
 <busses>
@@ -532,80 +532,77 @@ W = angled&lt;p&gt;
 <nets>
 <net name="N$1" class="0">
 <segment>
-<pinref part="BT1" gate="G$1" pin="UART_TX"/>
-<wire x1="21.59" y1="21.59" x2="12.7" y2="21.59" width="0.1524" layer="91"/>
-<wire x1="12.7" y1="21.59" x2="12.7" y2="20.32" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="3"/>
-<wire x1="12.7" y1="20.32" x2="10.16" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="17.78" x2="10.16" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="17.78" x2="15.24" y2="19.05" width="0.1524" layer="91"/>
+<pinref part="BT1" gate="G$1" pin="UART_RX"/>
+<wire x1="15.24" y1="19.05" x2="21.59" y2="19.05" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$2" class="0">
 <segment>
 <pinref part="SV1" gate="G$1" pin="1"/>
-<wire x1="10.16" y1="17.78" x2="16.51" y2="17.78" width="0.1524" layer="91"/>
-<wire x1="16.51" y1="17.78" x2="16.51" y2="19.05" width="0.1524" layer="91"/>
-<pinref part="BT1" gate="G$1" pin="UART_RX"/>
-<wire x1="16.51" y1="19.05" x2="21.59" y2="19.05" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="15.24" x2="16.51" y2="15.24" width="0.1524" layer="91"/>
+<wire x1="16.51" y1="15.24" x2="16.51" y2="21.59" width="0.1524" layer="91"/>
+<pinref part="BT1" gate="G$1" pin="UART_TX"/>
+<wire x1="16.51" y1="21.59" x2="21.59" y2="21.59" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$3" class="0">
 <segment>
 <pinref part="BT1" gate="G$1" pin="RST"/>
-<wire x1="-8.89" y1="26.67" x2="21.59" y2="26.67" width="0.1524" layer="91"/>
-<wire x1="-8.89" y1="26.67" x2="-8.89" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="-11.43" y1="26.67" x2="21.59" y2="26.67" width="0.1524" layer="91"/>
+<wire x1="-11.43" y1="26.67" x2="-11.43" y2="20.32" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="6"/>
-<wire x1="-8.89" y1="22.86" x2="-5.08" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="-11.43" y1="20.32" x2="-5.08" y2="20.32" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$4" class="0">
 <segment>
 <pinref part="SV1" gate="G$1" pin="7"/>
 <pinref part="BT1" gate="G$1" pin="GND"/>
-<wire x1="10.16" y1="25.4" x2="15.24" y2="25.4" width="0.1524" layer="91"/>
-<wire x1="15.24" y1="25.4" x2="15.24" y2="24.13" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="22.86" x2="15.24" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="22.86" x2="15.24" y2="24.13" width="0.1524" layer="91"/>
 <wire x1="15.24" y1="24.13" x2="21.59" y2="24.13" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$5" class="0">
 <segment>
 <pinref part="SV1" gate="G$1" pin="8"/>
-<wire x1="-5.08" y1="25.4" x2="-7.62" y2="25.4" width="0.1524" layer="91"/>
-<wire x1="-7.62" y1="25.4" x2="-7.62" y2="29.21" width="0.1524" layer="91"/>
+<wire x1="-5.08" y1="22.86" x2="-7.62" y2="22.86" width="0.1524" layer="91"/>
+<wire x1="-7.62" y1="22.86" x2="-7.62" y2="29.21" width="0.1524" layer="91"/>
 <pinref part="BT1" gate="G$1" pin="3V3"/>
 <wire x1="-7.62" y1="29.21" x2="21.59" y2="29.21" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$7" class="0">
-<segment>
-<wire x1="-11.43" y1="11.43" x2="17.78" y2="11.43" width="0.1524" layer="91"/>
-<wire x1="17.78" y1="11.43" x2="17.78" y2="16.51" width="0.1524" layer="91"/>
-<pinref part="BT1" gate="G$1" pin="PIO7"/>
-<wire x1="17.78" y1="16.51" x2="21.59" y2="16.51" width="0.1524" layer="91"/>
-</segment>
-</net>
 <net name="N$8" class="0">
 <segment>
-<wire x1="-6.35" y1="17.78" x2="-6.35" y2="8.89" width="0.1524" layer="91"/>
+<wire x1="-7.62" y1="15.24" x2="-7.62" y2="8.89" width="0.1524" layer="91"/>
 <pinref part="BT1" gate="G$1" pin="VREG_EN"/>
-<wire x1="-6.35" y1="8.89" x2="21.59" y2="8.89" width="0.1524" layer="91"/>
+<wire x1="-7.62" y1="8.89" x2="21.59" y2="8.89" width="0.1524" layer="91"/>
 <wire x1="21.59" y1="8.89" x2="21.59" y2="11.43" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="2"/>
-<wire x1="-6.35" y1="17.78" x2="-5.08" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="-7.62" y1="15.24" x2="-5.08" y2="15.24" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$6" class="0">
 <segment>
 <pinref part="SV1" gate="G$1" pin="5"/>
-<wire x1="10.16" y1="22.86" x2="15.24" y2="22.86" width="0.1524" layer="91"/>
-<wire x1="15.24" y1="22.86" x2="15.24" y2="13.97" width="0.1524" layer="91"/>
+<wire x1="10.16" y1="20.32" x2="12.7" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="12.7" y1="20.32" x2="12.7" y2="13.97" width="0.1524" layer="91"/>
 <pinref part="BT1" gate="G$1" pin="PIO6"/>
-<wire x1="15.24" y1="13.97" x2="21.59" y2="13.97" width="0.1524" layer="91"/>
+<wire x1="12.7" y1="13.97" x2="21.59" y2="13.97" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$9" class="0">
+<net name="N$7" class="0">
 <segment>
+<pinref part="BT1" gate="G$1" pin="PIO9"/>
+<wire x1="64.77" y1="6.35" x2="64.77" y2="11.43" width="0.1524" layer="91"/>
+<wire x1="64.77" y1="11.43" x2="62.23" y2="11.43" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="4"/>
-<wire x1="-5.08" y1="20.32" x2="-11.43" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="-5.08" y1="17.78" x2="-11.43" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="-11.43" y1="17.78" x2="-11.43" y2="6.35" width="0.1524" layer="91"/>
+<wire x1="-11.43" y1="6.35" x2="64.77" y2="6.35" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>

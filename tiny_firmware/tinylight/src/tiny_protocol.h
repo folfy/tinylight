@@ -21,6 +21,7 @@
 const char preamble[4+term]	= "tLED";
 const char response[3+term]	= "LED";
 const char pre_ada[3+term]	= "Ada";
+const char pre_BT[2+term] = "BT";
 
 #define ack					0x77
 #define nack				0xff

@@ -66,6 +66,12 @@ void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 #ifdef IR_avail
 	static void IR_init(void);
 #endif
+#ifdef RF_avail
+#if		RF_avail==2
+	static void BT_init(void);
+#endif
+#endif
+
 void DMA_Led_int(dma_callback_t state);
 
 //Button, Status_LED, FPS count
@@ -179,7 +185,12 @@ int main (void)
 		PORTD_INTCTRL = 1;
 	}
 	mode_update(set.default_mode & !mode_prev);
-		
+	
+	#ifdef RF_avail
+		#if		RF_avail==2
+			BT_init();
+		#endif
+	#endif
 	while(1)
 	{
 		if (usb_data_pending) 
@@ -464,7 +475,7 @@ static void IR_init(void)
 	ioport_set_pin_dir(IR_in,IOPORT_DIR_INPUT);
 	ioport_set_pin_mode(IR_in,IOPORT_MODE_TOTEM);
 	ioport_set_pin_dir(IR_en,IOPORT_DIR_OUTPUT);
-	ioport_set_pin_level(IR_en,true);
+	ioport_set_pin_level(IR_en,HIGH);
 	ioport_set_pin_sense_mode(IR_in,IOPORT_SENSE_FALLING);
 	tc_enable(&TCC0);
 	tc_write_period(&TCC0,65534); //131ms @ 32MHz / 64
@@ -483,7 +494,6 @@ uint_fast8_t get_ir_bit(uint_fast16_t time)
 
 ISR (PORTB_INT0_vect)
 {
-	
 	if (sleeping)
 	{
 		sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
@@ -638,6 +648,43 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 	}
 }
 
+#endif
+
+#ifdef RF_avail
+#if		RF_avail==2
+static void BT_init(void)
+{
+	ioport_set_pin_dir(BT_DSR,IOPORT_DIR_INPUT);
+	ioport_set_pin_mode(BT_DSR,IOPORT_MODE_TOTEM);
+	
+	ioport_set_pin_dir(BT_EN,IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(BT_EN,HIGH);
+	
+	ioport_set_pin_dir(BT_RST,IOPORT_DIR_OUTPUT);
+	
+	ioport_set_pin_dir(BT_RST_UART,IOPORT_DIR_OUTPUT);
+		
+	ioport_set_pin_dir(BT_RX,IOPORT_DIR_INPUT);
+	
+	ioport_set_pin_dir(BT_TX,IOPORT_DIR_OUTPUT);
+	
+	static usart_rs232_options_t USART_SERIAL_OPTIONS = {
+	      .baudrate = 9600,
+	      .charlength = USART_CHSIZE_8BIT_gc,
+	      .paritytype = USART_PMODE_DISABLED_gc,
+	      .stopbits = false
+	};
+	sysclk_enable_module(SYSCLK_PORT_C, PR_USART1_bm);
+	usart_init_rs232(BT_USART, &USART_SERIAL_OPTIONS);
+	usart_set_rx_interrupt_level(BT_USART, USART_INT_LVL_LO);
+};
+
+ISR(BT_USART_vect)
+{
+	udi_cdc_putc(usart_getchar(BT_USART));
+};
+
+#endif
 #endif
 /* ~~~~~~~~~~~~~~~~~~~~~~~ 	EEPROM		~~~~~~~~~~~~~~~~~~~~~~~ */
 
@@ -1019,6 +1066,23 @@ Bool read_USB(void)
 		set.mode=mode_usb_ada;
 		return true;
 	}
+	#ifdef RF_avail
+	#if		RF_avail==2
+		else if(usb_rx==pre_BT[0])
+		{
+			for(uint_fast8_t i=1;i<sizeof(pre_BT);i++)
+			{
+				if (get_USB_char() != pre_BT[i])
+				return false;
+			}
+			while(udi_cdc_is_rx_ready())
+			{
+				usart_putchar(BT_USART,get_USB_char());
+			}
+			return true;
+		}
+	#endif
+	#endif
 	
 	switch (get_USB_char())
 	{
