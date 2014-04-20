@@ -28,6 +28,7 @@ typedef struct {
 	uint_fast8_t default_mode;
 	uint_fast8_t timeout_mode;
 	uint_fast8_t timeout_time;
+	uint_fast8_t oversample;
 	uint_fast8_t alpha;
 	uint_fast8_t default_alpha;
 	uint_fast8_t gamma;
@@ -44,15 +45,14 @@ typedef struct {
 } settings;
 
 typedef struct {
-	uint_fast16_t current;	//Storm der LED-Stripes in mV
 	uint_fast16_t voltage;	//Versorgungsspannung der LED-Stripes in mV
-	uint_fast16_t light;		//Umgebungshelligkeit in lux
-	uint_fast16_t temp;	//Temperatur in 1/10 °C
+	uint_fast16_t current;	//Storm der LED-Stripes in mV
+	uint_fast16_t light;	//Umgebungshelligkeit in lux
+	uint_fast16_t temp;		//Temperatur in 1/10 °C
 } adc_sample;
 
 void callback_init(void);
 void power_down(void);
-void reset(Bool bootloader);
 
 void button_update(Bool key_state);
 void mode_update(uint_fast8_t mode);
@@ -65,7 +65,8 @@ void status_led_blink(void);
 void read_settings(void);
 void save_settings(void);
 
-void frame_update(Bool buffer_update);
+void frame_update(void);
+void handle_led_refresh(void);
 void gamma_map(void);
 
 void gamma_calc(void);
@@ -83,6 +84,6 @@ void SPI_start(void);
 void handle_usb(void);
 uint_fast8_t send_ack(uint_fast8_t new_mode);
 uint_fast8_t nack_flush(uint_fast8_t fault_code);
-Bool string_parser(char buff_a[], const char buff_b[], uint_fast8_t length);
+Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t length);
 
 #endif /* MAIN_H_ */

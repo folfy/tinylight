@@ -78,7 +78,7 @@ static void led_init(void)
 {
 	static usart_spi_options_t USART_SPI_OPTIONS = {
 		.spimode	= USART_CMODE_MSPI_gc,
-		.baudrate	= 1600000,		//1.6Mhz Clock
+		.baudrate	= 1000000,		//1Mhz Clock
 		.data_order	= 0				//SPI Mode 0
 	};
 	usart_init_spi_pull_up(&USARTC0,&USART_SPI_OPTIONS);
@@ -104,9 +104,12 @@ static void ADC_init(void)
 	
 	adc_write_configuration(&ADCA,&adc_conf);
 	
+	adc_set_compare_value(&ADCA,(310*4.0));	//prevent brownout
+	
 	/* led supply voltage */
 	adcch_set_input(&adcch_conf,ADCCH_POS_PIN11,ADCCH_NEG_NONE,1);
 	adcch_write_configuration(&ADCA,ADC_CH0, &adcch_conf);
+	ADCA_CH0_INTCTRL=ADC_CH_INTMODE_BELOW_gc|ADC_CH_INTLVL_HI_gc;
 	
 	/* led current */
 	adcch_set_input(&adcch_conf,ADCCH_POS_PIN6,ADCCH_NEG_PIN7,16);

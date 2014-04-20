@@ -61,7 +61,7 @@ volatile adc_sample measure={0,0,0,0};
 
 void RTC_Alarm(uint32_t time);
 void TCD1_OVF_int(void);
-void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
+void ADCA_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 #ifdef IR_avail
 	static void IR_init(void);
 #endif
@@ -81,14 +81,14 @@ void RTC_Alarm(uint32_t time)
 	if(button_state != button_mem)
 	{
 		if(button_state)
-			button_time=rtc_get_time();
+			button_time=time;
 		else
 			if(button_time)
-				button_update(rtc_get_time() >= button_time + button_long);
+				button_update(time >= button_time + button_long);
 		button_mem=button_state;
 	}
-	if(button_state & ( rtc_get_time() > (button_time+button_reset) ))
-		reset(true);
+	if(button_state & ( time > (button_time+button_reset) ))
+		wdt_reset_mcu();
 	
 	const uint_fast16_t led_alarm = 0.5*RTC_cycle;
 	static uint_fast16_t led_time = 0;
@@ -133,45 +133,51 @@ void RTC_Alarm(uint32_t time)
 	rtc_set_alarm(alarm_prev+=alarm);
 }
 
-void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
+void ADCA_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 {
-	const uint_fast8_t mean = 128, mshift = 7;	// 128 =  2^7 (+ 2^9 = 2^16 - avoid shifting)
-	static uint_fast8_t adc_cnt = mean;
-	static int_fast32_t  led_voltage_sum = 0, led_current_sum = 0, light_sum = 0, temp_sum = 0;
-
-	led_voltage_sum += adc_get_unsigned_result(&ADCA,ADC_CH0);
-	led_current_sum += adc_get_unsigned_result(&ADCA,ADC_CH1);
-	light_sum		+= adc_get_unsigned_result(&ADCA,ADC_CH2);
-	temp_sum		+= adc_get_unsigned_result(&ADCA,ADC_CH3);
-	
-	adc_cnt--;
-	if (!adc_cnt)
+	if(ch_mask==ADC_CH0)
+		mode_update(mode_error_BOP); //TODO: Test BOP, return measured voltage
+	else
 	{
-		if(led_voltage_sum>0)
-			measure.voltage = (led_voltage_sum * 1651)	>> (mshift+9);	//2047 / 6.6V/V		* 1		= 0.3102 U/mV  -> 3.224 mV/U * 512 (2^9)	= 1,651
-		else
-			measure.voltage = 0;
-		led_voltage_sum = 0;
-		
-		if((led_current_sum>0) && set.mode)
-			measure.current = (led_current_sum * 1042)	>> (mshift+9);	//2047 * 0.015V/A	* 16	= 0.4913 U/mA  -> 2.036 mA/U * 512 (2^9)	= 1,042
-		else
-			measure.current = 0;
-		led_current_sum = 0;			
-		
-		if(light_sum>0)
-			measure.light	= light_sum					>> (mshift-1);	//2047 * 0.48mV/Lux * 1/2	= 0.4913 U/Lux -> 2.035 Lux/U (high sensor tolerance - rough value)
-		else
-			measure.light	= 0;
-		light_sum = 0;
-										
-		if(temp_sum>0)
-			measure.temp	= (temp_sum * 3580 / (temp_cal+mean)) - 2730;	//cal=85C, 0V=0K, temperature = 1/10C
-		else
-			measure.temp	= 0;
-		temp_sum = 0;
-		
-		adc_cnt = mean;
+		//increase unsigned resolution from 11 bit to 13 bit (max value = 2047 * 16 / 4 = 8,188
+		const uint_fast8_t samples = 16, shift = 2, average = 8;
+		static uint_fast8_t adc_cnt = samples, mean_cnt = average;	
+		static int_fast16_t  voltage_sum = 0, current_sum = 0, light_sum = 0, temp_sum = 0;
+		static adc_sample adc_mean={0,0,0,0};
+
+		voltage_sum += adc_get_unsigned_result(&ADCA,ADC_CH0);
+		current_sum += adc_get_unsigned_result(&ADCA,ADC_CH1);
+		light_sum	+= adc_get_unsigned_result(&ADCA,ADC_CH2);
+		temp_sum	+= adc_get_unsigned_result(&ADCA,ADC_CH3);
+	
+		if(!--adc_cnt)
+		{
+			if(voltage_sum>0)
+				adc_mean.voltage	+= voltage_sum	>>shift;	// 8188 / 6.6V/V		* 1		= 1.2406 U/mV  -> 0.806 mV/U
+			voltage_sum=0;
+			if(current_sum>0)
+				adc_mean.current	+= current_sum	>>shift;	// 8188 * 0.015V/A		* 16	= 1.9651 U/mA  -> 0.509 mA/U
+			current_sum=0;
+			if(light_sum>0)
+				adc_mean.light		+= light_sum	>>shift;	// 8188 * 0.48mV/Lux	* 1/2	= 1.9651 U/Lux -> 0.509 Lux/U (high sensor tolerance - rough value)
+			light_sum=0;
+			if(temp_sum>0)
+				adc_mean.temp		+= temp_sum		>>shift;	// ((uint32_t)temp_sum * 3580 / (temp_cal*shift)) - 2730;	cal=85C, 0V=0K, temperature = 1/10C
+			temp_sum=0;
+			adc_cnt=samples;
+			//TODO: check adc oversampling, implement moving average
+			if(mean_cnt)
+			{
+				measure.voltage = MulU16X16toH16(adc_mean.voltage,0.806*65536);
+				adc_mean.voltage=0;
+				measure.current = MulU16X16toH16(adc_mean.current,0.509*65536);
+				adc_mean.current=0;
+				measure.light = MulU16X16toH16(adc_mean.light,0.509*65536);
+				adc_mean.light=0;
+				measure.temp = (adc_mean.temp*3580 / (temp_cal*8)) - 2730;	// TODO: temp_cal - test for delta V
+				adc_mean.temp=0;
+			}
+		}
 	}
 }
 
@@ -205,11 +211,11 @@ int main (void)
 		{
 			switch (set.mode)
 			{
-				case mode_mood_lamp:	Mood_Lamp(set.count); break;
-				case mode_rainbow:		Rainbow(set.count);	break;
-				case mode_colorswirl:	Colorswirl(set.count); break;
+				case mode_mood_lamp:	Mood_Lamp(set.count);	break;
+				case mode_rainbow:		Rainbow(set.count);		break;
+				case mode_colorswirl:	Colorswirl(set.count);	break;
 			}
-			frame_update(false);		
+			handle_led_refresh();	
 		}
 			
 	}
@@ -221,7 +227,7 @@ void callback_init(void)
 {
 	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) DMA_Led_int);
 	tc_set_overflow_interrupt_callback(&TCD1,TCD1_OVF_int);
-	adc_set_callback(&ADCA,ADCA_CH3_int);
+	adc_set_callback(&ADCA,ADCA_int);
 	rtc_set_callback(RTC_Alarm);
 	rtc_set_alarm_relative(0);
 	cpu_irq_enable();
@@ -233,22 +239,10 @@ void power_down(void)
 	adc_disable(&ADCA); 
 	sysclk_set_prescalers(SYSCLK_PSADIV_2,SYSCLK_PSBCDIV_1_1);
 	while((set.mode==mode_off)&&!ioport_get_pin_level(USB_VBUS))
-		sleepmgr_enter_sleep(); 
+		sleepmgr_enter_sleep();
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
 	adc_enable(&ADCA);
 	sleeping = false;
-}
-
-void reset(Bool bootloader)
-{
-	if(bootloader)
-	{
-		//reset via watchdog to get into bootloader
-		wdt_set_timeout_period(WDT_TIMEOUT_PERIOD_8CLK);
-		wdt_enable();
-	}
-	else
-		reset_do_soft_reset();
 }
 
 void button_update(Bool key_state)
@@ -319,6 +313,7 @@ void count_update(uint_fast8_t count)
 	{
 		set.count=count;
 		dma_init();
+		SetupDMA(set.mode&state_multi);
 	}
 }
 
@@ -666,6 +661,8 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 #endif
 /* ~~~~~~~~~~~~~~~~~~~~~~~ 	EEPROM		~~~~~~~~~~~~~~~~~~~~~~~ */
 
+#define set_EE_offset		1    // page wise
+
 void read_settings(void)
 {
 	nvm_eeprom_read_buffer(set_EE_offset*EEPROM_PAGE_SIZE, &set, sizeof(set));
@@ -675,6 +672,7 @@ void read_settings(void)
 		set.default_mode	=	mode_prev;
 		set.timeout_mode	=	mode_off;
 		set.timeout_time	=	timeout_vbus;
+		set.oversample		=	oversample_x4;			//4x oversample
 		set.default_alpha	=	0xFF;
 		set.gamma			=	2.2		*10;	//alpha=2.2
 		set.smooth_time		=	5		*2;		//time=5s
@@ -710,47 +708,44 @@ void save_settings(void)
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~	LED-MODE	~~~~~~~~~~~~~~~~~~~~~~~ */
 
-uint_fast16_t gamma_lut[256];
+uint_fast8_t gamma_lut[256];
+uint_fast8_t gamma_ms[256];
+uint_fast8_t ms_mask;
 
-void frame_update(Bool buffer_update)
+void frame_update(void)
 {
-	if(buffer_update)
-	{
-		if(set.gamma)
-			gamma_update=true;
-		else
-		{
-			for(uint_fast16_t n=0;n<set.count*3;n++)
-			{
-				front_buffer[n]=back_buffer[n];
-			}
-			SPI_start();
-		}
-	}
-	else if(gamma_update)
+	gamma_update=true;
+}
+
+void handle_led_refresh(void)
+{
+	if(gamma_update&&!dma_channel_is_busy(DMA_CHANNEL_LED))
 	{
 		gamma_update=false;
-		if(set.gamma&&!dma_channel_is_busy(DMA_CHANNEL_LED))
-		{
-			SPI_start(); // avoid delay if mapping takes longer than 500µs						
-			gamma_map();
-		}
+		SPI_start(); // avoid delay if mapping takes longer than 500µs
+		gamma_map();
 	}
 }
 
 void gamma_map(void)
 {
-	static uint_fast8_t run=0;
-	for(uint_fast16_t n=0;n<set.count*3;n++)
+	if(set.gamma)
 	{
-		uint_fast8_t val=back_buffer[n];
-		uint_fast16_t val_corr=gamma_lut[val];
-		front_buffer[n]=val_corr>>2;
-		if(val_corr%4>run)				//oversample pwm for increased resolution
-			front_buffer[n]++;
+		static uint_fast8_t run=0;
+		for(uint_fast16_t n=0;n<set.count*3;n++)
+		{
+			uint_fast8_t val=back_buffer[n];
+			front_buffer[n]=gamma_lut[val];
+			if(gamma_ms[val]>run)				//oversample pwm for increased resolution
+				front_buffer[n]++;
+		}
+		run=(run+1)&ms_mask;		
 	}
-	if(++run==4)
-		run=0;
+	else
+	{
+		for(uint_fast16_t n=0;n<set.count*3;n++)
+			front_buffer[n]=back_buffer[n];
+	}
 }
 
 void gamma_calc(void)
@@ -763,23 +758,35 @@ void gamma_calc(void)
 		gamma_pot++;
 		gamma_dec-=10;
 	}
-	
-	uint_fast8_t x=0;
-	for(;;)
+
+	uint_fast16_t val_max=255<<set.oversample;
+
+	switch(set.oversample)
 	{
-		uint_fast16_t y=65535;
+		case 0x01:	ms_mask=0x01;
+		break;
+		case 0x02:	ms_mask=0x03;
+		break;
+		case 0x03:	ms_mask=0x07;
+		break;
+		default:	ms_mask=0x00;
+		break;
+	}
+	uint_fast16_t val_mask=ms_mask;
+	
+	for(uint8_t x=0;x++<255;)
+	{
+		uint_fast16_t y=65280;
 		uint_fast16_t root=(nvm_flash_read_byte( (flash_addr_t) &root_10[x]+1) <<8)+nvm_flash_read_byte( (flash_addr_t) &root_10[x]);
 		
 		for(uint_fast8_t cnt=gamma_pot;cnt;cnt--)
 		y=MulU16X16toH16Round(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
 		for(uint_fast8_t cnt=gamma_dec;cnt;cnt--)
 		y=MulU16X16toH16Round(y,root);
-		
-		gamma_lut[x]=MulU16X16toH16Round(y,1020);
-		
-		if(x==255)
-			break;
-		x++;
+
+		y=MulU16X16toH16Round(y,val_max);
+		gamma_lut[x]=y>>set.oversample;
+		gamma_ms[x]=y&val_mask;
 	}
 }
 
@@ -793,7 +800,7 @@ void Mood_Lamp(uint_fast8_t anzahl_Leds)
 		time1=rtc_get_time()+0.010*RTC_cycle;
 		hsv_to_rgb(hue1,&back_buffer[0]);
 		hue1 = (hue1 + 2) % 1536;
-		frame_update(true);
+		frame_update();
 	}
 }
 
@@ -810,7 +817,7 @@ void Rainbow(uint_fast8_t anzahl_Leds)
 			hue2  += 40;
 		}
 		hue1 = (hue1 + 4) % 1536;
-		frame_update(true);
+		frame_update();
 	}
 }
 
@@ -848,7 +855,7 @@ void Colorswirl(uint_fast8_t anzahl_Leds)
 		sine1 -= rad_03;		// 0.03 rad
 		if(sine1>=deg360)
 			sine1-=(UINT_FAST16_MAX-deg360);
-		frame_update(true);
+		frame_update();
 	}
 }
 
@@ -940,8 +947,9 @@ void dma_init(void)
 /* Config DMA in single / multi LED mode */
 void SetupDMA(Bool multi)
 {
-	while (dma_channel_is_busy(DMA_CHANNEL_LED));
-		dma_enable();
+	while (dma_channel_is_busy(DMA_CHANNEL_LED))
+		;
+	dma_enable();
 	if (multi)	
 		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
 	else		
@@ -987,7 +995,10 @@ ISR (PORTD_INT0_vect)
 	if(ioport_get_pin_level(USB_VBUS))
 		udc_attach();
 	else
+	{
 		udc_detach();
+		mode_update(set.timeout_mode);
+	}
 }
 
 void main_cdc_rx_notify(uint8_t port)
@@ -999,7 +1010,8 @@ void handle_usb(void)
 {
 	//finite state machine
 	static uint_fast8_t usb_state=0;
-	char usb_buff[4];
+	uint8_t usb_buff[4];
+	static uint_fast16_t buffer_pos=0;
 	
 	static uint_fast32_t usb_rx_time=0;
 	static uint_fast8_t usb_state_prev=0; 
@@ -1009,21 +1021,24 @@ void handle_usb(void)
 		usb_rx_time=time;
 		usb_state_prev=usb_state;
 	}
-	if((usb_state!=usb_state_preamble)	&& (time>=(usb_rx_time+0.2*RTC_cycle)))
+	if((usb_state!=usb_state_idle)	&& (time>=(usb_rx_time+0.2*RTC_cycle)))
 		usb_state=nack_flush(nack_timeout|usb_state);
-	if((set.mode&state_usb)				&& (time>=(usb_rx_time+set.timeout_time*RTC_cycle/10)))
+	if(set.timeout_time)
+	{
+		if((set.mode&state_usb)		&& (time>=(usb_rx_time+set.timeout_time*RTC_cycle/10)))
 		mode_update(set.timeout_mode);
+	}
 		
 	if (usb_data_pending)
 	{
 		switch(usb_state)
 		{
-			case usb_state_preamble:	if(udi_cdc_get_nb_received_data()>=3)
+			case usb_state_idle:	if(udi_cdc_get_nb_received_data()>=3)
 										{
 											udi_cdc_read_buf(&usb_buff,3);
-											if(string_parser(usb_buff,preamble,3))
+											if		(string_parser(usb_buff, preamble, sizeof(preamble)))
 												usb_state=usb_state_cmd;
-											else if(string_parser(usb_buff,pre_ada,3))
+											else if	(string_parser(usb_buff, pre_ada, sizeof(pre_ada)))
 												usb_state=usb_state_ada_header;
 											else
 												usb_state=nack_flush(nack_preamble);									
@@ -1057,7 +1072,7 @@ void handle_usb(void)
 																udi_cdc_putc(software_rev);
 																udi_cdc_putc(board_rev);
 																udi_cdc_putc(set.mode);
-																usb_state=usb_state_preamble;
+																usb_state=usb_state_idle;
 																break;
 											case cmd_raw_data:	if(set.mode==mode_usb_single)
 																	usb_state=send_ack(usb_state_raw_single);
@@ -1066,23 +1081,17 @@ void handle_usb(void)
 																else
 																	usb_state=nack_flush(nack_raw_mode);
 																break;
-											case cmd_measure:	udi_cdc_putc(measure.voltage >> 8);
-																udi_cdc_putc(measure.voltage);
-																udi_cdc_putc(measure.current >> 8);
-																udi_cdc_putc(measure.current);
-																udi_cdc_putc(measure.light >> 8);
-																udi_cdc_putc(measure.light);
-																udi_cdc_putc(measure.temp);
+											case cmd_measure:	udi_cdc_write_buf((adc_sample*)&measure,sizeof(measure));
 																udi_cdc_putc(FPS >> 8);
 																udi_cdc_putc(FPS);
-																usb_state=usb_state_preamble;
+																usb_state=usb_state_idle;
 																break;
 											case cmd_set_read:	usb_state=usb_state_set_read;
 																break;
 											case cmd_set_write:	usb_state=usb_state_set_write;
 																break;
 											case cmd_set_save:	save_settings();
-																usb_state=send_ack(usb_state_preamble);
+																usb_state=send_ack(usb_state_idle);
 																break;
 											default:			usb_state=nack_flush(nack_command);
 																break;
@@ -1091,9 +1100,18 @@ void handle_usb(void)
 			case usb_state_raw_single:	if(udi_cdc_get_nb_received_data()>=3)
 										{
 											udi_cdc_read_buf(&back_buffer,3);
-											frame_update(true);									
+											frame_update();									
 										}
-			case usb_state_raw_multi:	usb_state=nack_flush(nack);
+										break;
+			case usb_state_raw_multi:	if((udi_cdc_get_nb_received_data()+buffer_pos)>=(set.count*3))
+										{
+											udi_cdc_read_buf(&back_buffer[buffer_pos],(set.count*3-buffer_pos));
+											buffer_pos=0;
+											usb_state=send_ack(usb_state_idle);
+											frame_update();
+										}	
+										else if(udi_cdc_get_nb_received_data()>=64)	
+											udi_cdc_read_buf(&back_buffer[buffer_pos],udi_cdc_get_nb_received_data());
 										break;
 			case usb_state_set_read:	switch(udi_cdc_getc())
 										{
@@ -1162,13 +1180,13 @@ uint_fast8_t nack_flush(uint_fast8_t fault_code)
 	udi_cdc_putc(nack_preamble);
 	while(udi_cdc_is_rx_ready())
 		udi_cdc_getc();
-	return usb_state_preamble;
+	return usb_state_idle;
 }
 
-Bool string_parser(char buff_a[], const char buff_b[], uint_fast8_t length)
+Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t length)
 {
 	uint_fast8_t index;
-	for(index=0;index<length;index++);
+	for(index=0;index<length;index++)
 	{
 		if(buff_a[index]!=buff_b[index])
 			return false;
