@@ -11,6 +11,7 @@
 
 extern uint8_t back_buffer[];
 
+void usb_init(void);
 void rtc_usb(void);
 void handle_usb(void);
 

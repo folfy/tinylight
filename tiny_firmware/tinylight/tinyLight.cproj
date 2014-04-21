@@ -408,6 +408,18 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src\misc_adc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\misc_adc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\set_sled.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\set_sled.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\usb.c">
       <SubType>compile</SubType>
     </Compile>
@@ -601,9 +613,6 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\main.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\main.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\mul16x16.c">

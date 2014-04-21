@@ -294,14 +294,14 @@ struct dma_channel_config dmach_conf_single;
 struct dma_channel_config dmach_conf_multi;
 
 /* Init DMA setup struct */
-void dma_init(uint8_t count)
+void dma_init(void)
 {
 	//single
 	memset(&dmach_conf_single, 0, sizeof(dmach_conf_single));
 
 	dma_channel_set_burst_length		(&dmach_conf_single, DMA_CH_BURSTLEN_1BYTE_gc);
 	dma_channel_set_transfer_count		(&dmach_conf_single, 3);
-	dma_channel_set_repeats				(&dmach_conf_single, count);
+	dma_channel_set_repeats				(&dmach_conf_single, set.count);
 
 	dma_channel_set_src_reload_mode		(&dmach_conf_single, DMA_CH_SRCRELOAD_BLOCK_gc);
 	dma_channel_set_src_dir_mode		(&dmach_conf_single, DMA_CH_SRCDIR_INC_gc);
@@ -320,7 +320,7 @@ void dma_init(uint8_t count)
 	memset(&dmach_conf_multi, 0, sizeof(dmach_conf_multi));
 	
 	dma_channel_set_burst_length		(&dmach_conf_multi, DMA_CH_BURSTLEN_1BYTE_gc);
-	dma_channel_set_transfer_count		(&dmach_conf_multi, count*3);
+	dma_channel_set_transfer_count		(&dmach_conf_multi, set.count*3);
 
 	dma_channel_set_src_reload_mode		(&dmach_conf_multi, DMA_CH_SRCRELOAD_BLOCK_gc);
 	dma_channel_set_src_dir_mode		(&dmach_conf_multi, DMA_CH_SRCDIR_INC_gc);
@@ -335,6 +335,8 @@ void dma_init(uint8_t count)
 	
 	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);
 	
+	tc_set_overflow_interrupt_callback(&SPI_TIMER,SPI_TIMER_OVF_int);
+	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) SPI_DMA_int);	//TODO: Init DMA split
 	dma_enable();
 };
 

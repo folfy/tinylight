@@ -65,10 +65,10 @@ extern const uint8_t ack_ada[5+term];
 #define set_stat_Led		0x20
 #define set_stb_Led			0x21
 #define set_count			0x30
-#define set_OCP				0x31	//TODO: Implement OCP
+#define set_OCP				0x31
 #define set_OCP_time		0x32
-#define set_SCP				0x33	//TODO: Implement SCP
-#define set_UVP				0x34	//TODO: Implement UVP
+#define set_SCP				0x33
+#define set_UVP				0x34
 
 #define state_on			0b10000000
 #define state_error			0b01000000

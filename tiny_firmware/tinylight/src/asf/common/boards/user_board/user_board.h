@@ -27,7 +27,7 @@
 #define RTC_freq				(32768/16)
 #define RTC_time				0.02					//20ms
 #define buffer_size				160
-#define BOP_Threshold			(4.3*310)				//4.0 Volt to prevent BOD
+#define BOP_Threshold			(4.0*310)				//4.0 Volt to prevent BOD
 
 #define DMA_CHANNEL_LED			0
 #define SLED_TIMER				TCD0

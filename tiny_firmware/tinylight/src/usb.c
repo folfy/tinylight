@@ -8,16 +8,10 @@
 #include <stdio.h>
 #include <asf.h>
 #include "tiny_protocol.h"
-#include "data.h"
-#include <led.h>
-#include <usb.h>
+#include "led.h"
+#include "set_sled.h"
+#include "usb.h"
 
-
-extern void mode_update(uint_fast8_t mode);
-extern void count_update(uint_fast8_t count);
-extern void save_settings(void);
-
-extern settings set;
 extern adc_sample measure;
 
 static uint_fast8_t send_ack(uint_fast8_t new_mode);
@@ -36,6 +30,17 @@ ISR (Vbus_INT0_vect)
 	{
 		udc_detach();
 		mode_update(set.timeout_mode);
+	}
+}
+
+void usb_init()
+{	
+	udc_start();
+	if (!udc_include_vbus_monitoring())
+	{
+		if(ioport_get_pin_level(USB_VBUS))
+			udc_attach();
+		PORTD_INTCTRL = 1;
 	}
 }
 
@@ -202,7 +207,7 @@ void handle_usb(void)
 			mode_update(set.timeout_mode);
 	}
 	if(set.mode==mode_usb_ada)
-		udi_cdc_write_buf(&ack_ada,sizeof(ack_ada));	//TODO: ada - send ping, disable timeout and gamma
+		udi_cdc_write_buf(&ack_ada,sizeof(ack_ada));	//UNDONE: ada - send ping, disable timeout and gamma
 }
 
 static uint_fast8_t send_ack(uint_fast8_t new_mode)
