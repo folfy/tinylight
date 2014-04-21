@@ -5,8 +5,8 @@
  *  Author: Folfy
  */ 
 
-#ifndef PROTOCOL_H_
-#define PROTOCOL_H_
+#ifndef TINY_PROTOCOL_H_
+#define TINY_PROTOCOL_H_
 
 #define protocol_rev 0x03
 
@@ -18,10 +18,10 @@
 #warning "Unknown architecture"
 #endif
 
-const uint8_t preamble[3+term]	= "LeD";
-const uint8_t response[3+term]	= "LED";
-const uint8_t pre_ada[3+term]	= "Ada";
-const uint8_t ack_ada[5+term]	= "Ada\n";
+extern const uint8_t preamble[3+term];
+extern const uint8_t response[3+term];
+extern const uint8_t pre_ada[3+term];
+extern const uint8_t ack_ada[5+term];
 
 #define ack					0x00	//Ack new state 
 #define nack_preamble		0xC0	//state_preamble:	preamble mismatch
@@ -104,4 +104,4 @@ const uint8_t ack_ada[5+term]	= "Ada\n";
 #define	scp_off				0x00
 #define uvp_off				0x00
 
-#endif
+#endif /* TINY_PROTOCOL_H_ */

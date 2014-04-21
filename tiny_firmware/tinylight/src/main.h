@@ -56,6 +56,7 @@ void power_down(void);
 
 void button_update(Bool key_state);
 void mode_update(uint_fast8_t mode);
+Bool get_state(uint_fast8_t state_mask);
 void count_update(uint_fast8_t count);
 
 void status_led_update(void);
@@ -64,22 +65,6 @@ void status_led_blink(void);
 
 void read_settings(void);
 void save_settings(void);
-
-void frame_update(void);
-void handle_led_refresh(void);
-void gamma_map(void);
-
-void gamma_calc(void);
-
-void Mood_Lamp(uint_fast8_t anzahl_Leds);
-void Rainbow(uint_fast8_t anzahl_Leds);
-void Colorswirl(uint_fast8_t anzahl_Leds);
-
-void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t buffer[]);
-
-void SetupDMA(Bool multi);
-void dma_init(void);
-void SPI_start(void);
 
 void handle_usb(void);
 uint_fast8_t send_ack(uint_fast8_t new_mode);
