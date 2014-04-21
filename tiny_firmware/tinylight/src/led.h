@@ -12,29 +12,27 @@
 //////////////////////////////////////////////////////////////////////////
 /* LED Software */
 
-extern uint_fast16_t volatile frame_count;
+extern volatile uint_fast16_t FPS;
 
-void handle_led_refresh(settings* set);
+void handle_led_refresh(void);
 void frame_update(void);
-void gamma_calc(settings* set);
+void gamma_calc(void);
 
-void Mood_Lamp(uint_fast8_t anzahl_Leds);
-void Rainbow(uint_fast8_t anzahl_Leds);
-void Colorswirl(uint_fast8_t anzahl_Leds);
+void Mood_Lamp(void);
+void Rainbow(void);
+void Colorswirl(void);
 
 //////////////////////////////////////////////////////////////////////////
 /* LED Driver */
 
-void SPI_start(void);
-
-void TCD1_OVF_int(void);
-void DMA_Led_int(dma_callback_t state);
+void SPI_TIMER_OVF_int(void);
+void SPI_DMA_int(dma_callback_t state);
+void rtc_fps(void);
 
 //////////////////////////////////////////////////////////////////////////
 /* DMA */
 
 void dma_init(uint8_t count);
-
 void SetupDMA(Bool multi);
 
 #endif /* LED_H_ */

@@ -408,6 +408,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src\usb.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\usb.h">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="atmel_devices_cdc.cat">
       <SubType>compile</SubType>
     </None>
@@ -582,9 +588,6 @@
     <None Include="src\config\conf_timeout.h">
       <SubType>compile</SubType>
     </None>
-    <Compile Include="src\data.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="src\led.c">
       <SubType>compile</SubType>
     </Compile>

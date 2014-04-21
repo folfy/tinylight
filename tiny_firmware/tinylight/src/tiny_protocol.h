@@ -104,4 +104,32 @@ extern const uint8_t ack_ada[5+term];
 #define	scp_off				0x00
 #define uvp_off				0x00
 
+typedef struct {
+	uint_fast8_t volatile mode;
+	uint_fast8_t default_mode;
+	uint_fast8_t timeout_mode;
+	uint_fast8_t timeout_time;
+	uint_fast8_t oversample;
+	uint_fast8_t alpha;
+	uint_fast8_t default_alpha;
+	uint_fast8_t gamma;
+	uint_fast8_t smooth_time;
+	uint_fast8_t alpha_min;
+	uint_fast8_t lux_max;
+	uint_fast8_t stat_LED;
+	uint_fast8_t stb_LED;
+	uint_fast8_t count;
+	uint_fast8_t OCP;
+	uint_fast8_t OCP_time;
+	uint_fast8_t SCP;
+	uint_fast8_t UVP;
+} settings;
+
+typedef struct {
+	uint_fast16_t voltage;	//Versorgungsspannung der LED-Stripes in mV
+	uint_fast16_t current;	//Storm der LED-Stripes in mV
+	uint_fast16_t light;	//Umgebungshelligkeit in lux
+	uint_fast16_t temp;		//Temperatur in 1/10 °C
+} adc_sample;
+
 #endif /* TINY_PROTOCOL_H_ */

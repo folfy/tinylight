@@ -125,8 +125,7 @@
 //! Interface callback definition
 #define  UDI_CDC_ENABLE_EXT(port)             true
 #define  UDI_CDC_DISABLE_EXT(port)
-#define  UDI_CDC_RX_NOTIFY(port)			  main_cdc_rx_notify(port);
-extern void main_cdc_rx_notify(uint8_t port);
+#define  UDI_CDC_RX_NOTIFY(port)
 #define  UDI_CDC_SET_CODING_EXT(port,cfg)
 #define  UDI_CDC_SET_DTR_EXT(port,set)
 #define  UDI_CDC_SET_RTS_EXT(port,set)
