@@ -50,7 +50,6 @@ int main (void)
 	adc_init();
 	gamma_calc();
 	usb_init();
-	mode_update(set.default_mode & !mode_prev);
 		
 	while(1)
 	{
@@ -64,6 +63,7 @@ int main (void)
 				case mode_mood_lamp:	Mood_Lamp();	break;
 				case mode_rainbow:		Rainbow();		break;
 				case mode_colorswirl:	Colorswirl();	break;
+				default: break;
 			}
 			handle_led_refresh();	
 		}
@@ -88,6 +88,27 @@ static void RTC_Alarm(uint32_t time)
 	}
 	rtc_set_alarm(alarm_prev+=alarm_cycle);
 }
+
+#define EEMEM __attribute__((section(".eeprom")))
+settings set_preset EEMEM =
+{
+	/*set.mode			=*/ mode_off,
+	/*set.mode_default	=*/	mode_def_prev_off,
+	/*set.timeout_mode	=*/	mode_off,
+	/*set.timeout_time	=*/	timeout_vbus,
+	/*set.oversample	=*/	oversample_x4,			//4x oversample
+	/*set.alpha			=*/ 0xFF,
+	/*set.default_alpha	=*/	0xFF,
+	/*set.gamma			=*/	2.2				*10,	//alpha=2.2
+	/*set.smooth_time	=*/	5				*2,		//time=5s
+	/*set.alpha_min		=*/	0,
+	/*set.lux_max		=*/	1000			/40,	//brightness=1000lux
+	/*set.stat_LED		=*/	50				*2.55,	//50%
+	/*set.stb_LED		=*/	5				*2.55,	//5%
+	/*set.count			=*/	80,
+	/*set.SCP			=*/	scp_off,
+	/*set.UVP			=*/	uvp_off
+};
 
 #ifdef IR_avail
 
@@ -309,7 +330,7 @@ void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 			case IR_fade3_key:			new_mode = mode_mood_lamp; break;
 			case IR_fade7_key:			new_mode = mode_colorswirl; break;
 			case IR_off_key:	if(set.mode==mode_off)	{
-									if (set.default_mode & mode_prev) {	if(!mode_set_prev()) mode_update(set.default_mode & !mode_prev); }
+									if (set.default_mode & state_prev) {	if(!mode_set_prev()) mode_update(set.default_mode & !state_prev); }
 									else { new_mode = set.default_mode;	}
 								} else	{
 									new_mode = mode_off;

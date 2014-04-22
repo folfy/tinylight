@@ -269,7 +269,7 @@ void SPI_TIMER_OVF_int(void)
 void SPI_DMA_int(dma_callback_t state)
 {
 	if(!(set.mode&state_multi))
-		SetupDMA(true);
+		SetupDMA();
 	tc_restart(&SPI_TIMER);
 	tc_set_resolution(&SPI_TIMER,500000);
 	gamma_update=true;
@@ -341,11 +341,10 @@ void dma_init(void)
 };
 
 /* Config DMA in single / multi LED mode */
-void SetupDMA(Bool multi)
+void SetupDMA(void)
 {
-	while (dma_channel_is_busy(DMA_CHANNEL_LED))
-		;
-	if (multi)
+	while (dma_channel_is_busy(DMA_CHANNEL_LED));
+	if (set.mode&state_multi)
 		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
 	else
 		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);

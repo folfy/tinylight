@@ -33,6 +33,6 @@ void rtc_fps(void);
 /* DMA */
 
 void dma_init(void);
-void SetupDMA(Bool multi);
+void SetupDMA(void);
 
 #endif /* LED_H_ */

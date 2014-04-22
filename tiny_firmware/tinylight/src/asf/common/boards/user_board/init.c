@@ -42,6 +42,7 @@ void board_init()
 	tc_enable(&SPI_TIMER);
 	tc_set_overflow_interrupt_level(&SPI_TIMER,TC_INT_LVL_MED);
 	tc_write_period(&SPI_TIMER,500);
+	cpu_irq_enable();
 }
 
 /* Init VBus detection io */

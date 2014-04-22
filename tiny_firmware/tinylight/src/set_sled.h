@@ -15,7 +15,7 @@ void read_settings(void);
 void save_settings(void);
 
 void mode_reset(void);
-Bool mode_set_prev(void);
+void mode_set_prev(void);
 Bool mode_update(uint_fast8_t mode);
 void count_update(uint_fast8_t count);
 

@@ -15,7 +15,8 @@
 //////////////////////////////////////////////////////////////////////////
 /* ADC */
 
-uint_fast16_t temp_cal = 0, scp_threshold, uvp_threshold;	//UNDONE:	threshold calc
+uint_fast16_t temp_cal;
+int_fast16_t scp_threshold=INT_FAST16_MAX, uvp_threshold=0;	//UNDONE:	threshold calc
 
 volatile adc_sample measure={0,0,0,0};
 volatile uint_fast16_t scp_val, uvp_val;	//TODO:		scp_val & uvap_val evaluation
@@ -24,7 +25,7 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 
 void adc_init(void)
 {
-	temp_cal=adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2; // calibration data is for unsigned mode, which has a positive offset of about 200
+	temp_cal=adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2-100; // calibration data is for unsigned mode, which has a positive offset of about 200
 	adc_enable(&ADC);
 	adc_set_callback(&ADC,ADC_int);
 }
@@ -45,31 +46,29 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 		static uint_fast8_t adc_cnt = samples, mean_cnt = average;
 		static int_fast16_t  voltage_sum = 0, current_sum = 0, light_sum = 0, temp_sum = 0;
 		static adc_sample adc_mean={0,0,0,0};
-		adc_sample sample;
+		int_fast16_t voltage, current, light, temp;
 			
-		sample.voltage	= adc_get_signed_result(&ADC,ADC_CH0);	// 2047	/ 6.6	V/V   *   1	= 0.3101 U/mV -> 3.224	mV/U
-		sample.current	= adc_get_signed_result(&ADC,ADC_CH1);	// 2047	* 0.015	V/A	  *  16	= 0.4913 U/mA -> 2.035	mA/U
-		sample.light	= adc_get_signed_result(&ADC,ADC_CH2);	// 2047	* 0.48  mV/Lux* 1/2 = 0.4913 U/Lux-> 2.035 Lux/U
-		sample.temp		= adc_get_signed_result(&ADC,ADC_CH3);	// * 3580 / temp_cal - 2730 = T
-			
+		voltage	= adc_get_signed_result(&ADC,ADC_CH0);	// 2047	/ 6.6	V/V   *   1	= 0.3101 U/mV -> 3.224	mV/U
+		current	= adc_get_signed_result(&ADC,ADC_CH1);	// 2047	* 0.015	V/A	  *  16	= 0.4913 U/mA -> 2.035	mA/U
+		light	= adc_get_signed_result(&ADC,ADC_CH2);	// 2047	* 0.48  mV/Lux* 1/2 = 0.4913 U/Lux-> 2.035 Lux/U
+		temp	= adc_get_signed_result(&ADC,ADC_CH3);	// * 3580 / temp_cal - 2730 = T;
+	
 		//TODO: Test UVP, SCP, BOP
-		if((sample.current>=scp_val)||(sample.voltage<=uvp_val))
+		if(((current>=scp_threshold)||(voltage<=uvp_threshold))&&(set.mode&state_on))
 		{
-			if(set.mode&state_on)
-			{
-				if(sample.voltage<=uvp_val)
-					mode_update(mode_error_UVP);
-				else
-					mode_update(mode_error_SCP);
-			}
-			uvp_val = MulU16X16toH16Round(sample.voltage<<2,vscale_11b);
-			scp_val = MulU16X16toH16Round(sample.current<<2,cscale_11b);
+			if(voltage<=uvp_threshold)
+				mode_update(mode_error_UVP);
+			else
+				mode_update(mode_error_SCP);
+			uvp_val = MulU16X16toH16Round(voltage<<2,vscale_11b);
+			scp_val = MulU16X16toH16Round(current<<2,cscale_11b);
 		}
 			
-		voltage_sum += sample.voltage;
-		current_sum += sample.current;
-		light_sum	+= sample.light;
-		temp_sum	+= sample.temp;
+		voltage_sum += voltage;
+		current_sum += current;
+		light_sum	+= light;
+		temp_sum	+= temp;
+
 			
 		if(!--adc_cnt)
 		{

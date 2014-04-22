@@ -53,78 +53,91 @@ extern const uint8_t ack_ada[5+term];
 #define cmd_set_write		0x44
 #define cmd_set_save		0x55
 
-#define set_mode			0x00
-#define set_default_mode	0x01
-#define set_timeout_mode	0x02
-#define set_timeout_time	0x03
-#define set_oversample		0x04
-#define set_alpha			0x10
-#define set_default_alpha	0x11
-#define set_gamma			0x12
-#define set_smooth_time		0x13
-#define set_alpha_min		0x14
-#define set_lux_max			0x15
-#define set_stat_Led		0x20
-#define set_stb_Led			0x21
-#define set_count			0x30
-#define set_OCP				0x31
-#define set_OCP_time		0x32
-#define set_SCP				0x33
-#define set_UVP				0x34
+#define set_mode			0
+#define set_default_mode	1
+#define set_timeout_mode	2
+#define set_timeout_time	3
+#define set_oversample		4
+#define set_alpha			5
+#define set_default_alpha	6
+#define set_gamma			7
+#define set_smooth_time		8
+#define set_alpha_min		9
+#define set_lux_max			10
+#define set_stat_Led		11
+#define set_stb_Led			12
+#define set_count			13
+#define set_OCP				14
+#define set_OCP_time		15
+#define set_SCP				16
+#define set_UVP				17
 
 #define state_on			0b10000000
 #define state_error			0b01000000
 #define state_usb			0b00100000
 #define state_multi			0b00010000
+#define state_prev			state_error	//	reuse error state bit for default mode = previous mode
 
-#define mode_prev			state_error	//	reuse error state bit for default mode = previous mode
+enum mode_t {
+	mode_off					=	(	0x00															),
+	mode_usb_single				=	(	0x00	| state_on					| state_usb					),
+	mode_usb_multi				=	(	0x01	| state_on					| state_usb	| state_multi	),
+	mode_usb_ada				=	(	0x08	| state_on					| state_usb	| state_multi	),
+	mode_mood_lamp				=	(	0x00	| state_on												),
+	mode_rainbow				=	(	0x01	| state_on								| state_multi	),
+	mode_colorswirl				=	(	0x02	| state_on								| state_multi	),
+	mode_error_BOP				=	(	0x00				| state_error								),
+	mode_error_UVP				=	(	0x01				| state_error								),
+	mode_error_SCP				=	(	0x04				| state_error								),
+	mode_error_internal			=	(	0x0F				| state_error								)
+};
 
-#define mode_off			(	0x00															)
-#define mode_usb_single		(	0x00	| state_on					| state_usb					)
-#define mode_usb_multi		(	0x01	| state_on					| state_usb	| state_multi	)
-#define mode_usb_ada		(	0x08	| state_on					| state_usb	| state_multi	)
-#define mode_mood_lamp		(	0x00	| state_on												)
-#define mode_rainbow		(	0x01	| state_on								| state_multi	)
-#define mode_colorswirl		(	0x02	| state_on								| state_multi	)
-#define mode_error_BOP		(	0x00				| state_error								)
-#define mode_error_UVP		(	0x01				| state_error								)
-#define mode_error_OVP		(	0x02				| state_error								)
-#define mode_error_OCP		(	0x03				| state_error								)
-#define mode_error_SCP		(	0x04				| state_error								)
-#define mode_error_internal	(	0x0F				| state_error								)
+enum mode_def_t {
+	mode_def_usb_single			=	(	0x00	| state_on					| state_usb					),
+	mode_def_usb_multi			=	(	0x01	| state_on					| state_usb	| state_multi	),
+	mode_def_usb_ada			=	(	0x08	| state_on					| state_usb	| state_multi	),
+	mode_def_mood_lamp			=	(	0x00	| state_on												),
+	mode_def_rainbow			=	(	0x01	| state_on								| state_multi	),
+	mode_def_colorswirl			=	(	0x02	| state_on								| state_multi	),
+	mode_def_prev_off			=	(	0x00				| state_prev								),
+	mode_def_prev_usb_single	=	(	0x00	| state_on	| state_prev	| state_usb					),
+	mode_def_prev_usb_multi		=	(	0x01	| state_on	| state_prev	| state_usb	| state_multi	),
+	mode_def_prev_usb_ada		=	(	0x08	| state_on	| state_prev	| state_usb	| state_multi	),
+	mode_def_prev_mood_lamp		=	(	0x00	| state_on	| state_prev								),
+	mode_def_prev_rainbow		=	(	0x01	| state_on	| state_prev				| state_multi	),
+	mode_def_prev_colorswirl	=	(	0x02	| state_on	| state_prev				| state_multi	)
+	};
 
-#define oversample_off		0x00
-#define oversample_x2		0x01
-#define oversample_x4		0x02
-#define oversample_x8		0x03
+enum oversample_t {
+oversample_off	=	0x00,
+oversample_x2	=	0x01,
+oversample_x4	=	0x02,
+oversample_x8	=	0x03
+};
 
 #define timeout_vbus		0x00
 
 #define alpha_auto			0x00
-
-#define ocp_off				0x00
 #define	scp_off				0x00
 #define uvp_off				0x00
 
 typedef struct {
-	uint_fast8_t volatile mode;
-	uint_fast8_t default_mode;
-	uint_fast8_t timeout_mode;
-	uint_fast8_t timeout_time;
-	uint_fast8_t oversample;
-	uint_fast8_t alpha;
-	uint_fast8_t default_alpha;
-	uint_fast8_t gamma;
-	uint_fast8_t smooth_time;
-	uint_fast8_t alpha_min;
-	uint_fast8_t lux_max;
-	uint_fast8_t stat_LED;
-	uint_fast8_t stb_LED;
-	uint_fast8_t count;
-	uint_fast8_t OCP;
-	uint_fast8_t OCP_time;
-	uint_fast8_t SCP;
-	uint_fast8_t UVP;
+	enum mode_t volatile	mode;
+	enum mode_def_t			default_mode;
+	enum mode_t				timeout_mode;
+	uint_fast8_t			timeout_time;
+	enum oversample_t		oversample;
+	uint_fast8_t			alpha;
+	uint_fast8_t			default_alpha;
+	uint_fast8_t			gamma;
+	uint_fast8_t			smooth_time;
+	uint_fast8_t			alpha_min;
+	uint_fast8_t			lux_max;
+	uint_fast8_t			stat_LED;
+	uint_fast8_t			stb_LED;
+	uint_fast8_t			count;
+	uint_fast8_t			SCP;
+	uint_fast8_t			UVP;
 } settings;
 
 typedef struct {
