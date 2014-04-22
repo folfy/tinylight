@@ -14,8 +14,9 @@ extern settings set;
 void read_settings(void);
 void save_settings(void);
 
+void mode_reset(void);
 Bool mode_set_prev(void);
-void mode_update(uint_fast8_t mode);
+Bool mode_update(uint_fast8_t mode);
 void count_update(uint_fast8_t count);
 
 void rtc_button(uint32_t time);

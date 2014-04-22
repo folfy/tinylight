@@ -69,6 +69,13 @@ void save_settings(void)
 
 volatile uint_fast8_t prev_mode=mode_off;
 
+//UNDONE: implement error mode handling
+void mode_reset(void)
+{
+	set.mode=mode_off;
+	status_led_update();
+}
+
 Bool mode_set_prev(void)
 {
 	if(prev_mode)
@@ -80,21 +87,23 @@ Bool mode_set_prev(void)
 	return false;
 }
 
-void mode_update(uint_fast8_t mode)
+Bool mode_update(uint_fast8_t mode)
 {
-	if(set.mode != mode)
+	if(set.mode&state_error)
+		return false;
+	if(set.mode == mode)
+		return true;
+	prev_mode=set.mode;
+	set.mode = mode;
+	if (set.mode&state_on)
 	{
-		prev_mode=set.mode;
-		set.mode = mode;
-		if (set.mode&state_on)
-		{
-			ioport_set_pin_level(MOSFET_en,HIGH);
-			SetupDMA(set.mode&state_multi);
-		}
-		else
-		ioport_set_pin_level(MOSFET_en,LOW);
-		status_led_update();
+		ioport_set_pin_level(MOSFET_en,HIGH);
+		SetupDMA(set.mode&state_multi);
 	}
+	else
+		ioport_set_pin_level(MOSFET_en,LOW);
+	status_led_update();
+	return true;
 }
 
 void count_update(uint_fast8_t count)

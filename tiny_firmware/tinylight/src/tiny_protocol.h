@@ -18,6 +18,8 @@
 #warning "Unknown architecture"
 #endif
 
+
+//UNDONE: Enum modes, etc.
 extern const uint8_t preamble[3+term];
 extern const uint8_t response[3+term];
 extern const uint8_t pre_ada[3+term];

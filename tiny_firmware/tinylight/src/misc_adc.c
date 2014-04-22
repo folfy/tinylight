@@ -53,17 +53,15 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 		sample.temp		= adc_get_signed_result(&ADC,ADC_CH3);	// * 3580 / temp_cal - 2730 = T
 			
 		//TODO: Test UVP, SCP, BOP
-		if(sample.voltage<=uvp_val)
+		if((sample.current>=scp_val)||(sample.voltage<=uvp_val))
 		{
 			if(set.mode&state_on)
-				mode_update(mode_error_UVP);
-			uvp_val = MulU16X16toH16Round(sample.voltage<<2,vscale_11b);
-			scp_val = MulU16X16toH16Round(sample.current<<2,cscale_11b);
-		}
-		if(sample.current>=scp_val)
-		{
-			if(set.mode&state_on)
-				mode_update(mode_error_SCP);
+			{
+				if(sample.voltage<=uvp_val)
+					mode_update(mode_error_UVP);
+				else
+					mode_update(mode_error_SCP);
+			}
 			uvp_val = MulU16X16toH16Round(sample.voltage<<2,vscale_11b);
 			scp_val = MulU16X16toH16Round(sample.current<<2,cscale_11b);
 		}
@@ -76,7 +74,7 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 		if(!--adc_cnt)
 		{
 			if(voltage_sum>0)
-			adc_mean.voltage	+= voltage_sum	>>shift;	// 4094 / 6.6V/V		* 1		= 1.2406 U/mV  -> 0.806 mV/U
+				adc_mean.voltage	+= voltage_sum	>>shift;	// 4094 / 6.6V/V		* 1		= 1.2406 U/mV  -> 0.806 mV/U
 			voltage_sum=0;
 			if(current_sum>0)
 			adc_mean.current	+= current_sum	>>shift;	// 8188 * 0.015V/A		* 16	= 1.9651 U/mA  -> 0.509 mA/U
