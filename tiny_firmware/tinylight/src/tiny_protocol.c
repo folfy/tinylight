@@ -18,3 +18,4 @@ const uint8_t preamble[3+term]	= "LeD";
 const uint8_t response[3+term]	= "LED";
 const uint8_t pre_ada[3+term]	= "Ada";
 const uint8_t ack_ada[5+term]	= "Ada\n";
+const uint8_t pre_BT[2+term]	= "BT";

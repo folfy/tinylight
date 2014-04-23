@@ -15,87 +15,126 @@
 //////////////////////////////////////////////////////////////////////////
 /* ADC */
 
-uint_fast16_t temp_cal;
-int_fast16_t scp_threshold=INT_FAST16_MAX, uvp_threshold=0;	//UNDONE:	threshold calc
-
+uint_fast16_t t_scale13b;	// Q2.14 - 11bit: 2047/((2047 * temp_cal)>>14) = ~3.3	  U/Deg-> 0.3	  C/U (use t_scale)
 volatile adc_sample measure={0,0,0,0};
-volatile uint_fast16_t scp_val, uvp_val;	//TODO:		scp_val & uvap_val evaluation
+volatile uint_fast16_t scp_threshold, uvp_threshold;
+volatile uint_fast16_t u_min_raw= UINT_FAST16_MAX,	i_max_raw	= 0,	t_max_raw	= 0;	//TODO:	scp_val & uvp_val & t_val evaluation, reset
+volatile uint_fast16_t u_min=	  UINT_FAST16_MAX,	i_max		= 0,	t_max		= 0;
 
 static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 
 void adc_init(void)
-{
-	temp_cal=adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2-100; // calibration data is for unsigned mode, which has a positive offset of about 200
+{	// invert calibration data for unsigned mode (dV=+190LSB) to signed conversion factor, T[1/10 C]=(val*temp_cal)>>14-2730,
+	t_scale13b=(((uint_fast32_t)3580)<<14)/(adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2-95);
+	uvp_scp_update();
+	protection_reset();
 	adc_enable(&ADC);
 	adc_set_callback(&ADC,ADC_int);
 }
 
+//TODO: temp_cal25b=(((uint_fast32_t)temp_mess+2730)<<14)/temp_raw), t_scale-> volatile
+
+void protection_reset(void)
+{
+	u_min_raw=UINT_FAST16_MAX;
+	i_max_raw=0;
+	t_max_raw=0;
+	u_min=	  UINT_FAST16_MAX;
+	i_max=	  0;
+	t_max=	  0;
+}
+
+void uvp_scp_update(void)
+{
+	if(set.uvp)
+		uvp_threshold=set.uvp*10+4000;
+	else
+		uvp_threshold=0;
+	if(set.scp)
+		scp_threshold=set.scp*50;
+	else
+		scp_threshold=UINT_FAST16_MAX;
+}
+
 static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 {
-	const uint16_t vscale_11b=3.224*16384+0.5;
-	const uint16_t cscale_11b=2.035*256+0.5;
+	//11bit value factor in Q2.14 (13b = Q0.16 -> slw 16 from mul) , required shift = scale (13b) - val_res (11b) = slw 2b (with Mul16x16toH16)
+	const uint16_t v_scale13b=3.224*(1<<14)+0.5;	// 2047	/ 6.6	V/V		*   1	=  0.3101 U/mV -> 3.224	 mV/U
+	const uint16_t c_scale13b=2.035*(1<<14)+0.5;	// 2047	* 0.015	V/A		*  16	=  0.4913 U/mA -> 2.035	 mA/U
+	const uint16_t l_scale13b=2.035*(1<<14)+0.5;	// 2047	* 0.48  mV/Lux	* 1/2	= ~0.5	  U/Lux-> 2.0	Lux/U (high sensor tolerance)
 	if(ch_mask==ADC_CH0)
-	{
 		mode_update(MODE_ERROR_BOP);
-		uvp_val = MulU16X16toH16Round(adc_get_unsigned_result(&ADC,ADC_CH0)<<2,vscale_11b);
-	}
 	else
 	{
-		//increase unsigned resolution from 11 bit to 12 bit (max value = 2047 * 16 / 4 = 4094
-		const uint_fast8_t samples = 16, shift = 3, average = 8;
-		static uint_fast8_t adc_cnt = samples, mean_cnt = average;
-		static int_fast16_t  voltage_sum = 0, current_sum = 0, light_sum = 0, temp_sum = 0;
-		static adc_sample adc_mean={0,0,0,0};
-		int_fast16_t voltage, current, light, temp;
+		//increase unsigned resolution from 11 bit to 12 bit (range = (2047 * 16) >> 3 = 4094, see atmel doc8003: adc oversampling theory)
+		const uint_fast8_t samples = 16, shift = 3;
+		static uint_fast8_t adc_cnt = samples;
+		adc_sample sample;
+		static adc_sample sum={0,0,0,0};
 			
-		voltage	= adc_get_signed_result(&ADC,ADC_CH0);	// 2047	/ 6.6	V/V   *   1	= 0.3101 U/mV -> 3.224	mV/U
-		current	= adc_get_signed_result(&ADC,ADC_CH1);	// 2047	* 0.015	V/A	  *  16	= 0.4913 U/mA -> 2.035	mA/U
-		light	= adc_get_signed_result(&ADC,ADC_CH2);	// 2047	* 0.48  mV/Lux* 1/2 = 0.4913 U/Lux-> 2.035 Lux/U
-		temp	= adc_get_signed_result(&ADC,ADC_CH3);	// * 3580 / temp_cal - 2730 = T;
+		sample.voltage	= adc_get_unsigned_result(&ADC,ADC_CH0);	
+		sample.current	= adc_get_signed_result  (&ADC,ADC_CH1);	
+		sample.light	= adc_get_unsigned_result(&ADC,ADC_CH2);	
+		sample.temp		= adc_get_unsigned_result(&ADC,ADC_CH3);
 	
 		//TODO: Test UVP, SCP, BOP
-		if(((current>=scp_threshold)||(voltage<=uvp_threshold))&&(set.mode&STATE_ON))
+		if(sample.voltage<u_min_raw)
 		{
-			if(voltage<=uvp_threshold)
-				mode_update(MODE_ERROR_UVP);
-			else
-				mode_update(MODE_ERROR_SCP);
-			uvp_val = MulU16X16toH16Round(voltage<<2,vscale_11b);
-			scp_val = MulU16X16toH16Round(current<<2,cscale_11b);
+			u_min_raw	= sample.voltage;
+			u_min		= MulU16X16toH16Round(u_min_raw<<2,v_scale13b);
+			if((u_min<=uvp_threshold)&&(set.mode&STATE_ON))
+				mode_update(MODE_ERROR_UVP);									
+		}
+		if(sample.current>(int_fast16_t) i_max_raw)
+		{
+			i_max_raw	= sample.current;
+			i_max		= MulU16X16toH16Round(i_max_raw<<2,c_scale13b);
+			if((i_max>=scp_threshold)&&(set.mode&STATE_ON))
+				mode_update(MODE_ERROR_SCP);				
+		}
+		if(sample.temp>t_max_raw)
+		{
+			t_max_raw	= sample.temp;
+			t_max		= MulU16X16toH16Round(i_max_raw<<2,t_scale13b);
 		}
 			
-		voltage_sum += voltage;
-		current_sum += current;
-		light_sum	+= light;
-		temp_sum	+= temp;
+		sum.voltage += sample.voltage;
+		sum.current += sample.current;
+		sum.light	+= sample.light;
+		sum.temp	+= sample.temp;
 
-			
+
 		if(!--adc_cnt)
 		{
-			if(voltage_sum>0)
-				adc_mean.voltage	+= voltage_sum	>>shift;	// 4094 / 6.6V/V		* 1		= 1.2406 U/mV  -> 0.806 mV/U
-			voltage_sum=0;
-			if(current_sum>0)
-			adc_mean.current	+= current_sum	>>shift;	// 8188 * 0.015V/A		* 16	= 1.9651 U/mA  -> 0.509 mA/U
-			current_sum=0;
-			if(light_sum>0)
-			adc_mean.light		+= light_sum	>>shift;	// 8188 * 0.48mV/Lux	* 1/2	= 1.9651 U/Lux -> 0.509 Lux/U (high sensor tolerance - rough value)
-			light_sum=0;
-			if(temp_sum>0)
-			adc_mean.temp		+= temp_sum		>>shift;	// ((uint32_t)temp_sum * 3580 / (temp_cal*shift)) - 2730;	cal=85C, 0V=0K, temperature = 1/10C
-			temp_sum=0;
+			
+			static adc_sample adc_mean={0,0,0,0};
+			
+			adc_mean.voltage	+= sum.voltage	>>shift;
+			sum.voltage=0;
+			adc_mean.current	+= sum.current	>>shift;
+			sum.current=0;
+			adc_mean.light		+= sum.light	>>shift;
+			sum.light=0;
+			adc_mean.temp		+= sum.temp		>>shift;
+			sum.temp=0;
 			adc_cnt=samples;
-			//TODO: check adc oversampling, implement moving average
-			if(mean_cnt)
+			
+			const uint_fast8_t mean=8, mshift=2;	//12b val -> mean=15b -> srw2 -> 13b
+			static uint_fast8_t mean_cnt=mean;
+			if(!--mean_cnt)
 			{
-				measure.voltage = MulU16X16toH16(adc_mean.voltage,0.806*65536);
+				measure.voltage		= MulU16X16toH16(adc_mean.voltage>>mshift,	v_scale13b);
 				adc_mean.voltage=0;
-				measure.current = MulU16X16toH16(adc_mean.current,0.509*65536);
+				if(adc_mean.current>0)
+					measure.current = MulU16X16toH16(adc_mean.current>>mshift,	c_scale13b);
+				else
+					measure.current = 0;
 				adc_mean.current=0;
-				measure.light = MulU16X16toH16(adc_mean.light,0.509*65536);
+				measure.light		= MulU16X16toH16(adc_mean.light>>mshift,	l_scale13b);
 				adc_mean.light=0;
-				measure.temp = (adc_mean.temp*3580 / (temp_cal*8)) - 2730;	// TODO: temp_cal - test (delta V)
-				adc_mean.temp=0;
+				measure.temp		= MulU16X16toH16(adc_mean.temp>>mshift,		t_scale13b) - 2730;
+				adc_mean.temp=0;	//TODO: make t_offset variable
+				mean_cnt=mean;
 			}
 		}
 	}

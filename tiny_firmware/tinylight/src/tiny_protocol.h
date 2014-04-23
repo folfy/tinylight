@@ -18,17 +18,11 @@
 #warning "Unknown architecture"
 #endif
 
-<<<<<<< HEAD
-const char preamble[4+term]	= "tLED";
-const char response[3+term]	= "LED";
-const char pre_ada[3+term]	= "Ada";
-const char pre_BT[2+term] = "BT";
-=======
 extern const uint8_t preamble[3+term];
 extern const uint8_t response[3+term];
 extern const uint8_t pre_ada[3+term];
 extern const uint8_t ack_ada[5+term];
->>>>>>> dev
+extern const uint8_t pre_BT[2+term];
 
 enum usb_response_t {
 	ACK						=	0,		//Ack new state 
@@ -61,22 +55,22 @@ enum usb_cmd_t {
 	};
 
 enum set_address_t {
-	set_mode				=	0,
-	set_default_mode		=	1,
-	set_timeout_mode		=	2,
-	set_timeout_time		=	3,
-	set_oversample			=	4,
-	set_alpha				=	5,
-	set_default_alpha		=	6,
-	set_gamma				=	7,
-	set_smooth_time			=	8,
-	set_alpha_min			=	9,
-	set_lux_max				=	10,
-	set_sled_bright			=	11,
-	set_sled_dim			=	12,
-	set_count				=	13,
-	set_SCP					=	14,
-	set_UVP					=	15
+	SET_MODE				=	0,
+	SET_DEFAULT_MODE		=	1,
+	SET_TIMEOUT_MODE		=	2,
+	SET_TIMEOUT_TIME		=	3,
+	SET_OVERSAMPLE			=	4,
+	SET_ALPHA				=	5,
+	SET_DEFAULT_ALPHA		=	6,
+	SET_GAMMA				=	7,
+	SET_SMOOTH_TIME			=	8,
+	SET_ALPHA_MIN			=	9,
+	SET_LUX_MAX				=	10,
+	SET_SLED_BRIGHT			=	11,
+	SET_SLED_DIM			=	12,
+	SET_COUNT				=	13,
+	SET_UVP					=	14,
+	SET_SCP					=	15
 	};
 	
 #define STATE_ON			0b10000000
@@ -114,11 +108,11 @@ enum mode_def_t {
 #define TIMEOUT_OFF			0xFF
 
 enum oversample_t {
-OVERSAMPLE_OFF	=	0x00,
-OVERSAMPLE_X2	=	0x01,
-OVERSAMPLE_X4	=	0x02,
-OVERSAMPLE_X8	=	0x03
-};
+	OVERSAMPLE_OFF	=	0x00,
+	OVERSAMPLE_X2	=	0x01,
+	OVERSAMPLE_X4	=	0x02,
+	OVERSAMPLE_X8	=	0x03
+	};
 
 #define ALPHA_AUTO			0x00
 #define	SCP_OFF				0x00
@@ -132,20 +126,20 @@ typedef struct {
 	enum oversample_t		oversample;
 	uint_fast8_t			alpha;
 	uint_fast8_t			default_alpha;
-	uint_fast8_t			gamma;
+	uint_fast8_t			gamma;	//TODO: add speed
 	uint_fast8_t			smooth_time;
 	uint_fast8_t			alpha_min;
 	uint_fast8_t			lux_max;
 	uint_fast8_t			stat_LED;
 	uint_fast8_t			stb_LED;
 	uint_fast8_t			count;
-	uint_fast8_t			SCP;
-	uint_fast8_t			UVP;
+	uint_fast8_t			uvp;
+	uint_fast8_t			scp;
 } settings;
 
 typedef struct {
 	uint_fast16_t voltage;	//Versorgungsspannung der LED-Stripes in mV
-	uint_fast16_t current;	//Storm der LED-Stripes in mV
+	int_fast16_t  current;	//Storm der LED-Stripes in mV
 	uint_fast16_t light;	//Umgebungshelligkeit in lux
 	uint_fast16_t temp;		//Temperatur in 1/10 °C
 } adc_sample;

@@ -9,11 +9,33 @@
 #include <asf.h>
 #include "tiny_protocol.h"
 #include "led.h"
+#include "misc_adc.h"
 #include "set_sled.h"
 
 volatile Bool mode_select = false;
 
 settings set;
+
+#define EEMEM __attribute__((section(".eeprom")))
+settings set_preset EEMEM =
+{
+	/*set.mode			=*/ MODE_OFF,
+	/*set.mode_default	=*/	MODE_DEF_PREV_OFF,
+	/*set.timeout_mode	=*/	MODE_OFF,
+	/*set.timeout_time	=*/	TIMEOUT_VBUS,
+	/*set.oversample	=*/	OVERSAMPLE_X4,			//4x oversample
+	/*set.alpha			=*/ 0xFF,
+	/*set.default_alpha	=*/	0xFF,
+	/*set.gamma			=*/	2.2				*10,	//alpha=2.2
+	/*set.smooth_time	=*/	5				*2,		//time=5s
+	/*set.alpha_min		=*/	0,
+	/*set.lux_max		=*/	1000			/40,	//brightness=1000lux
+	/*set.stat_LED		=*/	50				*2.55,	//50%
+	/*set.stb_LED		=*/	5				*2.55,	//5%
+	/*set.count			=*/	80,
+	/*set.SCP			=*/	SCP_OFF,
+	/*set.UVP			=*/	UVP_OFF
+};
 
 static void button_update(Bool key_state);
 
@@ -53,21 +75,21 @@ Bool write_set(enum set_address_t address, uint8_t val)
 {
 	switch(address)//UNDONE: Write write_val functions
 	{
-		case set_mode:				mode_update(val);					break;
-		case set_default_mode:		set.default_mode = val;				break;
-		case set_timeout_mode:		set.timeout_mode = val;				break;
-		case set_timeout_time:		set.timeout_time = val;				break;
-		case set_alpha:				set.alpha = val;					break;
-		case set_default_alpha:		set.default_alpha = val;			break;
-		case set_gamma:				write_gamma(val);					break;
-		case set_smooth_time:		set.smooth_time = val;				break;
-		case set_alpha_min:			set.alpha_min = val;				break;
-		case set_lux_max:			set.lux_max = val;					break;
-		case set_sled_bright:		set.stat_LED = val;					break;
-		case set_sled_dim:			set.stb_LED = val;					break;
-		case set_count:				write_count(val);					break;
-		case set_SCP:				set.SCP = val;						break;
-		case set_UVP:				set.UVP = val;						break;
+		case SET_MODE:				mode_update(val);					break;
+		case SET_DEFAULT_MODE:		set.default_mode = val;				break;
+		case SET_TIMEOUT_MODE:		set.timeout_mode = val;				break;
+		case SET_TIMEOUT_TIME:		set.timeout_time = val;				break;
+		case SET_ALPHA:				set.alpha = val;					break;
+		case SET_DEFAULT_ALPHA:		set.default_alpha = val;			break;
+		case SET_GAMMA:				write_gamma(val);					break;
+		case SET_SMOOTH_TIME:		set.smooth_time = val;				break;
+		case SET_ALPHA_MIN:			set.alpha_min = val;				break;
+		case SET_LUX_MAX:			set.lux_max = val;					break;
+		case SET_SLED_BRIGHT:		set.stat_LED = val;					break;
+		case SET_SLED_DIM:			set.stb_LED = val;					break;
+		case SET_COUNT:				write_count(val);					break;
+		case SET_SCP:				write_scp(val);						break;
+		case SET_UVP:				write_uvp(val);						break;
 		default:					return false;
 	}
 	return true;
@@ -85,9 +107,10 @@ Bool read_set(uint8_t address, uint8_t *val)
 
 volatile enum mode_t prev_mode=MODE_MOODLAMP;
 
-//UNDONE: implement error mode handling
-void mode_reset(void)
+//TODO: add error_reset function
+void mode_error_reset(void)
 {
+	protection_reset();
 	set.mode=MODE_OFF;
 	status_led_update();
 }
@@ -132,8 +155,20 @@ void write_count(uint_fast8_t count)
 		set.count=count;
 		dma_update();
 	}
-
 }
+
+void write_uvp(uint_fast8_t uvp_lim)
+{
+	set.uvp=uvp_lim;
+	uvp_scp_update();	
+}
+
+void write_scp(uint_fast8_t scp_lim)
+{
+	set.scp=scp_lim;
+	uvp_scp_update();	
+}
+
 
 //void write_UVP
 
@@ -169,7 +204,7 @@ static void button_update(Bool key_state)
 		{
 			//long
 			if(set.mode&STATE_ERROR)
-				mode_reset();
+				mode_error_reset();
 			else if (set.mode != MODE_OFF)
 			{
 				mode_select ^= true;
@@ -184,9 +219,9 @@ static void button_update(Bool key_state)
 				//Change Mode
 				switch(set.mode)
 				{
-					case MODE_MOODLAMP:	mode_update(MODE_RAINBOW); break;
+					case MODE_MOODLAMP:		mode_update(MODE_RAINBOW); break;
 					case MODE_RAINBOW:		mode_update(MODE_COLORSWIRL); break;
-					//case mode_colorswirl:	mode_update(mode_mood_lamp); break;
+					//case mode_colorswirl:	mode_update(MODE_MOODLAMP); break;
 					default:				mode_update(MODE_MOODLAMP); break;
 				}
 			}

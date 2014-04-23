@@ -34,66 +34,14 @@
 #ifdef IR_avail
 static void IR_init(void);
 #endif
-<<<<<<< HEAD
+
 #ifdef RF_avail
 #if		RF_avail==2
 	static void BT_init(void);
 #endif
 #endif
 
-void DMA_Led_int(dma_callback_t state);
-
 //Button, Status_LED, FPS count
-void RTC_Alarm(uint32_t time)
-{
-	const uint_fast16_t alarm = 0.0125*RTC_cycle;
-	static uint_fast32_t alarm_prev = 0;
-	
-	const uint_fast16_t button_long = 0.25*RTC_cycle;
-	const uint_fast16_t button_reset = 7*RTC_cycle;
-	static uint_fast32_t button_time = 0;
-	static Bool button_mem = true;						//prevent writing button_time if button pressed on boot
-	Bool button_state = ioport_get_pin_level(BUTTON);
-	if(button_state != button_mem)
-	{
-		if(button_state)
-			button_time=rtc_get_time();
-		else
-			if(button_time)
-				button_update(rtc_get_time() >= button_time + button_long);
-		button_mem=button_state;
-	}
-	if(button_state & ( rtc_get_time() > (button_time+button_reset) ))
-		reset_do_soft_reset();
-	
-	const uint_fast16_t led_alarm = 0.5*RTC_cycle;
-	static uint_fast16_t led_time = 0;
-	led_time+=alarm;
-	if((led_time >= led_alarm) && blink_en)
-	{
-		status_led_blink();
-		led_time=0;
-	}
-	
-	static uint_fast16_t fps_time = 0;
-	fps_time+=alarm;
-	if(fps_time >= 1*RTC_cycle)
-	{
-		FPS = frame_count;
-		fps_time = 0;
-		frame_count=0;
-	}
-	
-	if(time > (UINT32_MAX-RTC_cycle*3600*24))	//prevent rtc overflow if there are less than 24h remaining
-	{
-		if( !(set.mode&state_on) || (time >= (UINT32_MAX-alarm)) )	// delay as long as required or possible
-			reset_do_soft_reset();
-	}
-	rtc_set_alarm(alarm_prev+=alarm);
-}
-=======
->>>>>>> dev
-
 static void RTC_Alarm(uint32_t time);
 
 int main (void)
@@ -108,25 +56,13 @@ int main (void)
 	#endif
 	adc_init();
 	gamma_calc();
-<<<<<<< HEAD
-	udc_start();
-	if (!udc_include_vbus_monitoring())
-	{
-		if(ioport_get_pin_level(USB_VBUS))
-			udc_attach();
-		PORTD_INTCTRL = 1;
-	}
-	mode_update(set.default_mode & !mode_prev);
-	
+	usb_init();
 	#ifdef RF_avail
 		#if		RF_avail==2
 			BT_init();
 		#endif
 	#endif
-=======
-	usb_init();
-		
->>>>>>> dev
+
 	while(1)
 	{
 		handle_usb();
@@ -136,14 +72,14 @@ int main (void)
 		{
 			switch (set.mode)
 			{
-				case MODE_MOODLAMP:	Mood_Lamp();	break;
+				case MODE_MOODLAMP:		Mood_Lamp();	break;
 				case MODE_RAINBOW:		Rainbow();		break;
 				case MODE_COLORSWIRL:	Colorswirl();	break;
 				default: break;
 			}
 			handle_led_refresh();	
 		}
-			
+		//TODO: check main() exec time, may add rms calc
 	}
 }
 
@@ -164,27 +100,6 @@ static void RTC_Alarm(uint32_t time)
 	}
 	rtc_set_alarm(alarm_prev+=alarm_cycle);
 }
-
-#define EEMEM __attribute__((section(".eeprom")))
-settings set_preset EEMEM =
-{
-	/*set.mode			=*/ MODE_OFF,
-	/*set.mode_default	=*/	MODE_DEF_PREV_OFF,
-	/*set.timeout_mode	=*/	MODE_OFF,
-	/*set.timeout_time	=*/	TIMEOUT_VBUS,
-	/*set.oversample	=*/	OVERSAMPLE_X4,			//4x oversample
-	/*set.alpha			=*/ 0xFF,
-	/*set.default_alpha	=*/	0xFF,
-	/*set.gamma			=*/	2.2				*10,	//alpha=2.2
-	/*set.smooth_time	=*/	5				*2,		//time=5s
-	/*set.alpha_min		=*/	0,
-	/*set.lux_max		=*/	1000			/40,	//brightness=1000lux
-	/*set.stat_LED		=*/	50				*2.55,	//50%
-	/*set.stb_LED		=*/	5				*2.55,	//5%
-	/*set.count			=*/	80,
-	/*set.SCP			=*/	SCP_OFF,
-	/*set.UVP			=*/	UVP_OFF
-};
 
 #ifdef IR_avail
 
@@ -443,7 +358,6 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 }
 
 #endif
-<<<<<<< HEAD
 
 #ifdef RF_avail
 #if		RF_avail==2
@@ -481,444 +395,3 @@ ISR(BT_USART_vect)
 
 #endif
 #endif
-/* ~~~~~~~~~~~~~~~~~~~~~~~ 	EEPROM		~~~~~~~~~~~~~~~~~~~~~~~ */
-
-void read_settings(void)
-{
-	nvm_eeprom_read_buffer(set_EE_offset*EEPROM_PAGE_SIZE, &set, sizeof(set));
-	if(set.default_mode==0xFF)
-	{
-		set.default_mode	=	mode_prev;
-		set.timeout_mode	=	mode_off;
-		set.timeout_time	=	timeout_vbus;
-		set.default_alpha	=	0xFF;
-		set.gamma			=	2.2		*10;	//alpha=2.2
-		set.smooth_time		=	5		*2;		//time=5s
-		set.alpha_min		=	0;
-		set.lux_max			=	1000	/40;	//brightness=1000lux
-		set.stat_LED		=	50		*2.55;	//50%
-		set.stb_LED			=	5		*2.55;	//5%
-		set.count			=	80;
-		set.OCP				=	ocp_off;
-		set.OCP_time		=	0;
-		set.SCP				=	scp_off;
-		set.UVP				=	uvp_off;
-		save_settings();
-	}
-	set.alpha=set.default_alpha;
-};
-
-void save_settings(void)
-{
-	nvm_eeprom_flush_buffer();
-	uint_fast8_t *values = (uint_fast8_t *) &set;
-	nvm_wait_until_ready();
-	eeprom_enable_mapping();
-	for (uint8_t i = 0; i < sizeof(set); i++) 
-	{
-		uint8_t value = *values;
-		*(uint8_t*)(i + MAPPED_EEPROM_START) = value;
-		values++;
-	}
-	eeprom_disable_mapping();
-	nvm_eeprom_atomic_write_page(set_EE_offset);
-}
-=======
->>>>>>> dev
-
-
-
-
-
-<<<<<<< HEAD
-void Mood_Lamp(uint_fast8_t anzahl_Leds)
-{
-	static uint_fast32_t time1=0;
-	if(rtc_get_time()>=time1)
-	{
-		time1=rtc_get_time()+0.010*RTC_cycle;
-		hsv_to_rgb(hue1,&back_buffer[0]);
-		hue1 = (hue1 + 2) % 1536;
-		frame_update(true);
-	}
-}
-
-void Rainbow(uint_fast8_t anzahl_Leds)
-{
-	static uint_fast32_t time1=0;
-	if(rtc_get_time()>=time1)
-	{
-		time1=rtc_get_time()+0.010*RTC_cycle;
-		uint_fast16_t hue2 = hue1;
-		for (uint_fast8_t k=0; k<anzahl_Leds; k++)
-		{
-			hsv_to_rgb(hue2, &back_buffer[k*3]);
-			hue2  += 40;
-		}
-		hue1 = (hue1 + 4) % 1536;
-		frame_update(true);
-	}
-}
-
-void Colorswirl(uint_fast8_t anzahl_Leds)
-{
-	static uint_fast32_t time1=0;
-	if(rtc_get_time()>=time1)
-	{
-		time1=rtc_get_time()+0.010*RTC_cycle;
-		/* x=linsin(alpha); x e ]-1...1]= -32767...32768; alpha e [0...259.99]=65535 (1deg=256) */
-		/* sine1, sine2 - 1deg=128 - prevent overflow at 260deg */
-		const uint_fast16_t deg360 = 46080, rad_3 = 17.2*128, rad_03 = 1.72*128;
-		static uint_fast16_t sine1 = 0;
-	
-		uint_fast16_t sine2 = sine1;
-		uint_fast16_t hue2 = hue1;
-
-		for (uint_fast8_t k=0; k<anzahl_Leds; k++)
-		{
-			uint_fast8_t rgb_buffer[3];
-			uint_fast8_t bright;
-			hsv_to_rgb(hue2, rgb_buffer);
-			if(sine2 >= deg360)
-				sine2-= deg360;
-			bright = linsin_360(sine2)+127;
-		
-			back_buffer[k*3]	=	bright * rgb_buffer[0] >> 8;		//R
-			back_buffer[k*3+1]	=	bright * rgb_buffer[1] >> 8;		//G
-			back_buffer[k*3+2]	=	bright * rgb_buffer[2] >> 8;		//B
-		
-			hue2  += 40;
-			sine2 += rad_3;	// 0.3 rad
-		}
-		hue1   = (hue1 + 4) % 1536;
-		sine1 -= rad_03;		// 0.03 rad
-		if(sine1>=deg360)
-			sine1-=(UINT_FAST16_MAX-deg360);
-		frame_update(true);
-	}
-}
-
-void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t rgb_buffer[])
-{
-	uint_fast8_t lo = hue & 255;
-	switch((hue >> 8) % 6) {
-		case 0:
-		rgb_buffer[0] = 255;
-		rgb_buffer[1] = lo;
-		rgb_buffer[2] = 0;
-		return;
-		case 1:
-		rgb_buffer[0] = 255 - lo;
-		rgb_buffer[1] = 255;
-		rgb_buffer[2] = 0;
-		return;
-		case 2:
-		rgb_buffer[0] = 0;
-		rgb_buffer[1] = 255;
-		rgb_buffer[2] = lo;
-		return;
-		case 3:
-		rgb_buffer[0] = 0;
-		rgb_buffer[1] = 255 - lo;
-		rgb_buffer[2] = 255;
-		return;
-		case 4:
-		rgb_buffer[0] = lo;
-		rgb_buffer[1] = 0;
-		rgb_buffer[2] = 255;
-		return;
-		default:
-		rgb_buffer[0] = 255;
-		rgb_buffer[1] = 0;
-		rgb_buffer[2] = 255 - lo;
-		return;
-	}
-}
-
-void status_bar(uint_fast16_t val, uint_fast16_t range, uint_fast8_t anzahl_Leds)
-{
-	static uint8_t R=255, G=255, B=255;
-	range = range / anzahl_Leds;
-	for (uint_fast8_t k=0;k<=(anzahl_Leds*3 - 3);k+=3)
-	{
-		uint_fast16_t temp = ((k/3)+1) * range;
-		if ( val / temp > 0)
-		{
-			back_buffer[k]	=R;		//R
-			back_buffer[k+1]=G;		//G
-			back_buffer[k+2]=B;		//B
-		}
-		else
-		{
-			back_buffer[k]	=0;
-			back_buffer[k+1]=0;
-			back_buffer[k+2]=0;
-		}
-	}
-	frame_update(true);
-}
-
-/*	~~~~~~~~~~~~~~~~~~~~~~~	 DMA/LED	~~~~~~~~~~~~~~~~~~~~~~~ */
-
-struct dma_channel_config dmach_conf_single;
-struct dma_channel_config dmach_conf_multi;
-
-/* Init DMA setup struct */
-void dma_init(void)
-{
-	//single
-	memset(&dmach_conf_single, 0, sizeof(dmach_conf_single));
-
-	dma_channel_set_burst_length		(&dmach_conf_single, DMA_CH_BURSTLEN_1BYTE_gc);
-	dma_channel_set_transfer_count		(&dmach_conf_single, 3);
-	dma_channel_set_repeats				(&dmach_conf_single, set.count);
-
-	dma_channel_set_src_reload_mode		(&dmach_conf_single, DMA_CH_SRCRELOAD_BLOCK_gc);
-	dma_channel_set_src_dir_mode		(&dmach_conf_single, DMA_CH_SRCDIR_INC_gc);
-	dma_channel_set_source_address		(&dmach_conf_single, (uint16_t)(uintptr_t)front_buffer);
-
-	dma_channel_set_dest_reload_mode	(&dmach_conf_single, DMA_CH_DESTRELOAD_NONE_gc);
-	dma_channel_set_dest_dir_mode		(&dmach_conf_single, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address	(&dmach_conf_single, (uint16_t)(uintptr_t)&USARTC0_DATA);
-
-	dma_channel_set_trigger_source		(&dmach_conf_single, DMA_CH_TRIGSRC_USARTC0_DRE_gc);
-	dma_channel_set_single_shot			(&dmach_conf_single);
-	
-	dma_channel_set_interrupt_level		(&dmach_conf_single, DMA_INT_LVL_MED);
-	
-	//multi
-	memset(&dmach_conf_multi, 0, sizeof(dmach_conf_multi));
-	
-	dma_channel_set_burst_length		(&dmach_conf_multi, DMA_CH_BURSTLEN_1BYTE_gc);
-	dma_channel_set_transfer_count		(&dmach_conf_multi, set.count*3);
-
-	dma_channel_set_src_reload_mode		(&dmach_conf_multi, DMA_CH_SRCRELOAD_BLOCK_gc);
-	dma_channel_set_src_dir_mode		(&dmach_conf_multi, DMA_CH_SRCDIR_INC_gc);
-	dma_channel_set_source_address		(&dmach_conf_multi, (uint16_t)(uintptr_t)front_buffer);
-
-	dma_channel_set_dest_reload_mode	(&dmach_conf_multi, DMA_CH_DESTRELOAD_NONE_gc);
-	dma_channel_set_dest_dir_mode		(&dmach_conf_multi, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address	(&dmach_conf_multi, (uint16_t)(uintptr_t)&USARTC0_DATA);
-
-	dma_channel_set_trigger_source		(&dmach_conf_multi, DMA_CH_TRIGSRC_USARTC0_DRE_gc);
-	dma_channel_set_single_shot			(&dmach_conf_multi);
-	
-	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);
-};
-
-/* Config DMA in single / multi LED mode */
-void SetupDMA(Bool multi)
-{
-	while (dma_channel_is_busy(DMA_CHANNEL_LED));
-		dma_enable();
-	if (multi)	
-		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
-	else		
-		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
-	dma_channel_enable(DMA_CHANNEL_LED);
-}
-
-/* Start DMA Transfer */
-void SPI_start(void)
-{
-	if (dma_channel_is_busy(DMA_CHANNEL_LED) || TCD1.CTRLA)
-		update_frame = true;
-	else
-		dma_channel_enable(DMA_CHANNEL_LED);
-}
-
-//Latch delay DMA (LED)
-void TCD1_OVF_int(void)
-{
-	TCD1.CTRLA = 0; //Stop Timer
-	if (update_frame)
-	{
-		dma_channel_enable(DMA_CHANNEL_LED);
-		update_frame = false;
-	}
-	frame_count++;
-}
-
-void DMA_Led_int(dma_callback_t state)
-{
-	if(!(set.mode & state_multi) && (set.mode & state_on))
-		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
-	tc_restart(&TCD1);
-	tc_set_resolution(&TCD1,500000);
-	gamma_update=true;
-}
-
-/*	~~~~~~~~~~~~~~~~~~~~~~~	 USB		~~~~~~~~~~~~~~~~~~~~~~~ */
-
-//VBus detection
-ISR (PORTD_INT0_vect)
-{
-	if(ioport_get_pin_level(USB_VBUS))
-		udc_attach();
-	else
-		udc_detach();
-}
-
-void main_cdc_rx_notify(uint8_t port)
-{
-	usb_data_pending = true;
-}
-
-Bool read_USB(void)
-{
-	uint_fast8_t set_addr;
-	uint_fast8_t set_value;
-	char usb_rx=get_USB_char();
-	if(usb_rx==preamble[0])
-	for(uint_fast8_t i=1;i<sizeof(preamble);i++)
-	{
-		if (get_USB_char() != preamble[i])
-		return false;
-	}
-	else if(usb_rx==pre_ada[0])
-	{
-		for(uint_fast8_t i=1;i<sizeof(pre_ada);i++)
-		{
-			if (get_USB_char() != pre_ada[i])
-				return false;
-		}
-		char cnt_h=get_USB_char();
-		char cnt_l=get_USB_char();
-		if((cnt_l^cnt_h)!=get_USB_char())
-			return false;
-		set.count=cnt_l;
-		SetupDMA(true);
-		set.mode=mode_usb_ada;
-		return true;
-	}
-	#ifdef RF_avail
-	#if		RF_avail==2
-		else if(usb_rx==pre_BT[0])
-		{
-			for(uint_fast8_t i=1;i<sizeof(pre_BT);i++)
-			{
-				if (get_USB_char() != pre_BT[i])
-				return false;
-			}
-			while(udi_cdc_is_rx_ready())
-			{
-				usart_putchar(BT_USART,get_USB_char());
-			}
-			return true;
-		}
-	#endif
-	#endif
-	
-	switch (get_USB_char())
-	{
-		case cmd_test:		udi_cdc_write_buf(&response,sizeof(response));
-							udi_cdc_putc(protocol_rev);
-							udi_cdc_putc(software_rev);
-							udi_cdc_putc(board_rev);
-							udi_cdc_putc(set.mode);
-							break;
-		case cmd_raw_data:	//if(set.mode == mode_single_led)
-		switch(set.mode)
-		{	case mode_usb_single:	udi_cdc_read_buf(&back_buffer,3);
-									frame_update(true);
-									break;
-			case mode_usb_multi:	return false;
-									break;
-			default:				return false;
-
-		}
-		//if (color_buffer[0] == 'A' & color_buffer[1] == 'd' & color_buffer[2] == 'a')
-		//{
-		//uint_fast8_t temp;
-		//temp = udi_cdc_getc();
-		//temp = udi_cdc_getc() + 1;
-		//if (Led_anzahl != temp)
-		//{
-		//Led_anzahl = temp;
-		//SetupDMA_CH1();
-		//}
-		//temp = udi_cdc_getc();
-		//}
-		//else i=3;
-		//for(;i<Led_anzahl*3;i++)
-		//{
-		//color_buffer[i] = udi_cdc_getc() / brightness;
-		//}
-		break;
-		case cmd_measure:	udi_cdc_putc(measure.voltage >> 8);
-							udi_cdc_putc(measure.voltage);
-							udi_cdc_putc(measure.current >> 8);
-							udi_cdc_putc(measure.current);
-							udi_cdc_putc(measure.light >> 8);
-							udi_cdc_putc(measure.light);
-							udi_cdc_putc(measure.temp);
-							udi_cdc_putc(FPS >> 8);
-							udi_cdc_putc(FPS);
-							break;
-		case cmd_set_read:	switch(get_USB_char())
-							{
-								case set_mode:				udi_cdc_putc(set.mode);			break;
-								case set_default_mode:		udi_cdc_putc(set.default_mode);	break;
-								case set_timeout_mode:		udi_cdc_putc(set.timeout_mode);	break;
-								case set_timeout_time:		udi_cdc_putc(set.timeout_time);	break;
-								case set_alpha:				udi_cdc_putc(set.alpha);		break;
-								case set_default_alpha:		udi_cdc_putc(set.default_alpha);break;
-								case set_gamma:				udi_cdc_putc(set.gamma);		break;
-								case set_smooth_time:		udi_cdc_putc(set.smooth_time);	break;
-								case set_alpha_min:			udi_cdc_putc(set.alpha_min);	break;
-								case set_lux_max:			udi_cdc_putc(set.lux_max);		break;
-								case set_stat_Led:			udi_cdc_putc(set.stat_LED);		break;
-								case set_stb_Led:			udi_cdc_putc(set.stb_LED);		break;
-								case set_count:				udi_cdc_putc(set.count);		break;
-								case set_OCP:				udi_cdc_putc(set.OCP);			break;
-								case set_OCP_time:			udi_cdc_putc(set.OCP_time);		break;
-								case set_SCP:				udi_cdc_putc(set.SCP);			break;
-								case set_UVP:				udi_cdc_putc(set.UVP);			break;
-							}
-							break;
-		case cmd_set_write:	set_addr  = get_USB_char(); if (set_addr  != get_USB_char()) return false;
-							set_value = get_USB_char(); if (set_value != get_USB_char()) return false;
-							switch(set_addr)
-							{
-								case set_mode:				mode_update(set_value);					break;
-								case set_default_mode:		set.default_mode = set_value;			break;
-								case set_timeout_mode:		set.timeout_mode = set_value;			break;
-								case set_timeout_time:		set.timeout_time = set_value;			break;
-								case set_alpha:				set.alpha = set_value;					break;
-								case set_default_alpha:		set.default_alpha = set_value;			break;
-								case set_gamma:				set.gamma = set_value; gamma_calc();	break;
-								case set_smooth_time:		set.smooth_time = set_value;			break;
-								case set_alpha_min:			set.alpha_min = set_value;				break;
-								case set_lux_max:			set.lux_max = set_value;				break;
-								case set_stat_Led:			set.stat_LED = set_value;				break;
-								case set_stb_Led:			set.stb_LED = set_value;				break;
-								case set_count:				set.count = set_value;					break;
-								case set_OCP:				set.OCP = set_value;					break;
-								case set_OCP_time:			set.OCP_time = set_value;				break;
-								case set_SCP:				set.SCP = set_value;					break;
-								case set_UVP:				set.UVP = set_value;					break;
-								default: return false;
-							}
-							break;
-		case cmd_set_save:	save_settings(); /*eeprom_write_block(&set, (uint8_t *) set_EE_offset, sizeof(set));*/ break;
-		default:			return false;
-	}
-	return true;
-}
-
-#define CMD_timeout 0xfffe
-
-uint_fast8_t get_USB_char(void)
-{
-	if (!timeout_flag)
-	{
-		for (uint_fast16_t i = 0; i < CMD_timeout; i++)
-		{
-			if(udi_cdc_is_rx_ready()) {timeout_flag = false; return udi_cdc_getc();}
-		}
-	}
-	timeout_flag = true;
-	return 0;
-}
-=======
->>>>>>> dev

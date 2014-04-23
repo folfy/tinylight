@@ -18,12 +18,14 @@ extern settings set;	//handle as read_only
 Bool write_set(enum set_address_t address, uint8_t val);
 Bool read_set (uint8_t address, uint8_t *val);
 
-void mode_reset(void);
+void mode_error_reset(void);
 void mode_set_prev(void);
 Bool mode_update(uint_fast8_t mode);
 
 void write_gamma(uint_fast8_t gamma);
 void write_count(uint_fast8_t count);
+void write_uvp(uint_fast8_t uvp_lim);
+void write_scp(uint_fast8_t scp_lim);
 
 /* Button */
 void rtc_button(uint32_t time);

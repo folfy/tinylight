@@ -14,6 +14,8 @@
 extern volatile adc_sample measure;
 
 void adc_init(void);
+void protection_reset(void);
+void uvp_scp_update(void);
 
 /* Sleep */
 
