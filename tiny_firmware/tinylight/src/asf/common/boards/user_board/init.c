@@ -105,7 +105,7 @@ static void ADC_init(void)
 	
 	adc_write_configuration(&ADC,&adc_conf);
 	
-	adc_set_compare_value(&ADC,BOP_Threshold);	//prevent brownout
+	adc_set_compare_value(&ADC,BOP_THERSHOLD);	//prevent brownout
 	
 	/* led supply voltage */
 	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Volt,ADCCH_NEG_NONE,1);

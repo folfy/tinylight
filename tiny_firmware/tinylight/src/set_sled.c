@@ -23,9 +23,9 @@ static void button_update(Bool key_state);
 void read_settings(void)
 {
 	nvm_eeprom_read_buffer(0, &set, sizeof(set));
-	set.mode=mode_off;
+	set.mode=MODE_OFF;
 	status_led_update();							//force sled update if new mode
-	mode_update(set.default_mode&!state_prev);
+	mode_update(set.default_mode&!STATE_PREV);
 
 	set.alpha=set.default_alpha;
 };
@@ -46,18 +46,55 @@ void save_settings(void)
 	nvm_eeprom_atomic_write_page(0);
 }
 
-volatile enum mode_t prev_mode=mode_mood_lamp;
+//////////////////////////////////////////////////////////////////////////
+/* Settings access */
+
+Bool write_set(enum set_address_t address, uint8_t val)
+{
+	switch(address)//UNDONE: Write write_val functions
+	{
+		case set_mode:				mode_update(val);					break;
+		case set_default_mode:		set.default_mode = val;				break;
+		case set_timeout_mode:		set.timeout_mode = val;				break;
+		case set_timeout_time:		set.timeout_time = val;				break;
+		case set_alpha:				set.alpha = val;					break;
+		case set_default_alpha:		set.default_alpha = val;			break;
+		case set_gamma:				write_gamma(val);					break;
+		case set_smooth_time:		set.smooth_time = val;				break;
+		case set_alpha_min:			set.alpha_min = val;				break;
+		case set_lux_max:			set.lux_max = val;					break;
+		case set_sled_bright:		set.stat_LED = val;					break;
+		case set_sled_dim:			set.stb_LED = val;					break;
+		case set_count:				write_count(val);					break;
+		case set_SCP:				set.SCP = val;						break;
+		case set_UVP:				set.UVP = val;						break;
+		default:					return false;
+	}
+	return true;
+};
+
+Bool read_set(uint8_t address, uint8_t *val)
+{		
+	if(address<sizeof(set))								
+	{	
+		*val=(uint8_t)*(&set.mode+address);
+		return true;
+	}
+	return false;
+}
+
+volatile enum mode_t prev_mode=MODE_MOODLAMP;
 
 //UNDONE: implement error mode handling
 void mode_reset(void)
 {
-	set.mode=mode_off;
+	set.mode=MODE_OFF;
 	status_led_update();
 }
 
 void mode_set_prev(void)
 {
-	if(set.default_mode&state_prev)
+	if(set.default_mode&STATE_PREV)
 		mode_update(prev_mode);
 	else
 		mode_update(set.default_mode);
@@ -65,13 +102,13 @@ void mode_set_prev(void)
 
 Bool mode_update(uint_fast8_t mode)
 {
-	if(set.mode&state_error)
+	if(set.mode&STATE_ERROR)
 		return false;
 	if(set.mode == mode)
 		return true;
 	prev_mode=set.mode;
 	set.mode = mode;
-	if (set.mode&state_on)
+	if (set.mode&STATE_ON)
 	{
 		ioport_set_pin_level(MOSFET_en,HIGH);
 		SetupDMA();
@@ -82,20 +119,31 @@ Bool mode_update(uint_fast8_t mode)
 	return true;
 }
 
-void count_update(uint_fast8_t count)
+void write_gamma(uint_fast8_t gamma)
+{
+	set.gamma=gamma;
+	gamma_calc();
+}
+
+void write_count(uint_fast8_t count)
 {
 	if(set.count!=count)
 	{
 		set.count=count;
-		dma_init();
-		SetupDMA();
+		dma_update();
 	}
+
 }
+
+//void write_UVP
+
+//////////////////////////////////////////////////////////////////////////
+/* Button */
 
 void rtc_button(uint32_t time)
 {
-	const uint_fast16_t button_long = 0.25*RTC_freq;
-	const uint_fast16_t button_reset = 7*RTC_freq;
+	const uint_fast16_t button_long = 0.25*RTC_FREQ;
+	const uint_fast16_t button_reset = 7*RTC_FREQ;
 	static uint_fast32_t button_time = 0;
 	static Bool button_mem = true;						//prevent writing button_time if button pressed on boot
 	Bool button_state = ioport_get_pin_level(BUTTON);
@@ -113,16 +161,16 @@ void rtc_button(uint32_t time)
 
 static void button_update(Bool key_state)
 {
-	if(set.mode==mode_off)
+	if(set.mode==MODE_OFF)
 		mode_set_prev();
 	else
 	{
 		if(key_state)
 		{
 			//long
-			if(set.mode&state_error)
+			if(set.mode&STATE_ERROR)
 				mode_reset();
-			else if (set.mode != mode_off)
+			else if (set.mode != MODE_OFF)
 			{
 				mode_select ^= true;
 				status_led_update();
@@ -136,22 +184,24 @@ static void button_update(Bool key_state)
 				//Change Mode
 				switch(set.mode)
 				{
-					case mode_mood_lamp:	mode_update(mode_rainbow); break;
-					case mode_rainbow:		mode_update(mode_colorswirl); break;
+					case MODE_MOODLAMP:	mode_update(MODE_RAINBOW); break;
+					case MODE_RAINBOW:		mode_update(MODE_COLORSWIRL); break;
 					//case mode_colorswirl:	mode_update(mode_mood_lamp); break;
-					default:				mode_update(mode_mood_lamp); break;
+					default:				mode_update(MODE_MOODLAMP); break;
 				}
 			}
 			else
-				mode_update(mode_off);
+				mode_update(MODE_OFF);
 		}
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////
+/* SLED */
 
 uint_fast8_t blink = 0; //TODO: make blink nicer
 
-const uint_fast8_t led_prescaler = 0.5/RTC_time+0.5;	//Round
+const uint_fast8_t led_prescaler = 0.5/RTC_TIME+0.5;	//round
 volatile uint_fast8_t led_cycle;
 
 void status_led_update(void)
@@ -168,12 +218,12 @@ void status_led_update(void)
 	}
 	else
 	{
-		if(set.mode&state_on)
+		if(set.mode&STATE_ON)
 		{
 			blink=0;
 			if(set.stat_LED)
 			{
-				if(set.mode&state_usb)
+				if(set.mode&STATE_USB)
 				{
 					tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
 					tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_G);
@@ -193,7 +243,7 @@ void status_led_update(void)
 		}
 		else
 		{
-			if(set.mode&state_error)
+			if(set.mode&STATE_ERROR)
 			{
 				blink=1;
 				led_cycle=led_prescaler;

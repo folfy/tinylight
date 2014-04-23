@@ -54,15 +54,15 @@ int main (void)
 	while(1)
 	{
 		handle_usb();
-		if(set.mode==mode_off)
+		if(set.mode==MODE_OFF)
 			power_down();
 		else
 		{
 			switch (set.mode)
 			{
-				case mode_mood_lamp:	Mood_Lamp();	break;
-				case mode_rainbow:		Rainbow();		break;
-				case mode_colorswirl:	Colorswirl();	break;
+				case MODE_MOODLAMP:	Mood_Lamp();	break;
+				case MODE_RAINBOW:		Rainbow();		break;
+				case MODE_COLORSWIRL:	Colorswirl();	break;
 				default: break;
 			}
 			handle_led_refresh();	
@@ -74,16 +74,16 @@ int main (void)
 //Button, Status_LED, FPS count
 static void RTC_Alarm(uint32_t time)
 {
-	const uint_fast16_t alarm_cycle = (RTC_time*RTC_freq+0.5);
+	const uint_fast16_t alarm_cycle = (RTC_TIME*RTC_FREQ+0.5);
 	static uint_fast32_t alarm_prev = 0;
 	
 	rtc_button(time);
 	rtc_sled();
 	rtc_fps();
 	
-	if(time > (UINT32_MAX-RTC_freq*3600*24))	//prevent rtc overflow if there are less than 24h remaining
+	if(time > (UINT32_MAX-RTC_FREQ*3600*24))	//prevent rtc overflow if there are less than 24h remaining
 	{
-		if( !(set.mode&state_on) || (time >= (UINT32_MAX-alarm_cycle)) )	// delay as long as required or possible
+		if( !(set.mode&STATE_ON) || (time >= (UINT32_MAX-alarm_cycle)) )	// delay as long as required or possible
 			reset_do_soft_reset();	// TODO: Review RTC_Overflow
 	}
 	rtc_set_alarm(alarm_prev+=alarm_cycle);
@@ -92,11 +92,11 @@ static void RTC_Alarm(uint32_t time)
 #define EEMEM __attribute__((section(".eeprom")))
 settings set_preset EEMEM =
 {
-	/*set.mode			=*/ mode_off,
-	/*set.mode_default	=*/	mode_def_prev_off,
-	/*set.timeout_mode	=*/	mode_off,
-	/*set.timeout_time	=*/	timeout_vbus,
-	/*set.oversample	=*/	oversample_x4,			//4x oversample
+	/*set.mode			=*/ MODE_OFF,
+	/*set.mode_default	=*/	MODE_DEF_PREV_OFF,
+	/*set.timeout_mode	=*/	MODE_OFF,
+	/*set.timeout_time	=*/	TIMEOUT_VBUS,
+	/*set.oversample	=*/	OVERSAMPLE_X4,			//4x oversample
 	/*set.alpha			=*/ 0xFF,
 	/*set.default_alpha	=*/	0xFF,
 	/*set.gamma			=*/	2.2				*10,	//alpha=2.2
@@ -106,8 +106,8 @@ settings set_preset EEMEM =
 	/*set.stat_LED		=*/	50				*2.55,	//50%
 	/*set.stb_LED		=*/	5				*2.55,	//5%
 	/*set.count			=*/	80,
-	/*set.SCP			=*/	scp_off,
-	/*set.UVP			=*/	uvp_off
+	/*set.SCP			=*/	SCP_OFF,
+	/*set.UVP			=*/	UVP_OFF
 };
 
 #ifdef IR_avail
@@ -292,7 +292,7 @@ ISR (PORTB_INT0_vect)
 	
 void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 {
-	uint_fast8_t new_mode = mode_usb_single;
+	uint_fast8_t new_mode = MODE_USB_SINGLE;
 	static uint_fast8_t last_cmd;
 	bool save = false;
 	if (addr != IR_addr) {return;} 
@@ -326,14 +326,14 @@ void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 			case IR_pink_color_key:			change_color(18,&back_buffer[0], save); break;
 			case IR_skyblue_2_color_key:	change_color(19,&back_buffer[0], save); break;
 					
-			case IR_jump7_key:			new_mode = mode_rainbow; break;
-			case IR_fade3_key:			new_mode = mode_mood_lamp; break;
-			case IR_fade7_key:			new_mode = mode_colorswirl; break;
-			case IR_off_key:	if(set.mode==mode_off)	{
-									if (set.default_mode & state_prev) {	if(!mode_set_prev()) mode_update(set.default_mode & !state_prev); }
+			case IR_jump7_key:			new_mode = MODE_RAINBOW; break;
+			case IR_fade3_key:			new_mode = MODE_MOODLAMP; break;
+			case IR_fade7_key:			new_mode = MODE_COLORSWIRL; break;
+			case IR_off_key:	if(set.mode==MODE_OFF)	{
+									if (set.default_mode & STATE_PREV) {	if(!mode_set_prev()) mode_update(set.default_mode & !STATE_PREV); }
 									else { new_mode = set.default_mode;	}
 								} else	{
-									new_mode = mode_off;
+									new_mode = MODE_OFF;
 								}
 								break;
 			}
@@ -349,7 +349,7 @@ void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 		case IR_blue_minus_key:		if (back_buffer[2] > 0)		back_buffer[2]--;	break;
 		default: last_cmd = cmd;
 	}
-	if (set.mode == mode_usb_single)	frame_update(true);
+	if (set.mode == MODE_USB_SINGLE)	frame_update(true);
 };
 
 void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)

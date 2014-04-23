@@ -29,7 +29,8 @@ ISR (Vbus_INT0_vect)
 	else
 	{
 		udc_detach();
-		mode_update(set.timeout_mode);
+		if(!set.timeout_time)
+			mode_update(set.timeout_mode);
 	}
 }
 
@@ -44,144 +45,143 @@ void usb_init()
 	}
 }
 
+enum usb_state_t {
+	USB_STATE_IDLE			=	0,
+	USB_STATE_CMD			=	1,
+	USB_STATE_RAW_SINGLE	=	2,
+	USB_STATE_RAW_MULTI		=	3,
+	USB_STATE_SET_READ		=	4,
+	USB_STATE_SET_WRITE		=	5,
+	USB_STATE_ADA_HEADER	=	6,
+	USB_STATE_ADA_RAW		=	7
+};
+
 void handle_usb(void)
 {
 	//finite state machine
-	static uint_fast8_t usb_state=0;
+	static enum usb_state_t usb_state=USB_STATE_IDLE;
 	uint8_t usb_buff[4];
 	static uint_fast16_t buffer_pos=0;
+	iram_size_t rx_count=udi_cdc_get_nb_received_data();
 	
-	if (udi_cdc_is_rx_ready())
+	if (rx_count)
 	{
 		switch(usb_state)
 		{
-			case usb_state_idle:		if(udi_cdc_get_nb_received_data()>=3)
+			case USB_STATE_IDLE:		if(rx_count>=3)
 										{
 											udi_cdc_read_buf(&usb_buff,3);
 											if		(string_parser(usb_buff, preamble, sizeof(preamble)))
-											usb_state=usb_state_cmd;
+												usb_state=USB_STATE_CMD;
 											else if	(string_parser(usb_buff, pre_ada, sizeof(pre_ada)))
-											usb_state=usb_state_ada_header;
+											{
+												udi_cdc_write_buf(&ack_ada,sizeof(ack_ada));
+												usb_state=USB_STATE_ADA_HEADER;
+											}
 											else
-											usb_state=nack_flush(nack_preamble);
+												usb_state=nack_flush(NACK_PREAMPLE);
 										}
 										break;
-			case usb_state_ada_header:	if(udi_cdc_get_nb_received_data()>=3)
+			case USB_STATE_ADA_HEADER:	if(rx_count>=3)
 										{
 											udi_cdc_read_buf(&usb_buff,3);
 											if((usb_buff[0]^usb_buff[1]^0x55)==usb_buff[2])
 											{
-												if(!usb_buff[0] && (usb_buff[1]<=buffer_size))
+												if(!usb_buff[0] && (usb_buff[1]<=BUFFER_SIZE))
 												{
-													count_update(usb_buff[1]);
-													mode_update(mode_usb_ada);
-													usb_state=usb_state_ada_raw;
+													write_count(usb_buff[1]);
+													mode_update(MODE_USB_ADA);
+													usb_state=USB_STATE_ADA_RAW;
 												}
 												else
-													usb_state=nack_flush(nack_ada_length);
+													usb_state=nack_flush(NACK_ADA_LENGTH);
 											}
 											else
-												usb_state=nack_flush(nack_ada_crc);
+												usb_state=nack_flush(NACK_ADA_CRC);
 										}
 										break;
-			case usb_state_ada_raw:
-				
-										break;
-			case usb_state_cmd:			switch(udi_cdc_getc())
+			case USB_STATE_ADA_RAW:		if((rx_count+buffer_pos)>=(set.count*3))	//BUG: ada loosing connection
 										{
-											case cmd_test:		udi_cdc_write_buf(&response,sizeof(response));
-																udi_cdc_putc(protocol_rev);
-																udi_cdc_putc(software_rev);
-																udi_cdc_putc(board_rev);
+											udi_cdc_read_buf(&back_buffer[buffer_pos],(set.count*3-buffer_pos));	//TODO: move ada to front_buffer and skip gamma
+											buffer_pos=0;
+											frame_update();
+											usb_state=USB_STATE_IDLE;
+										}
+										else if(rx_count>=32)
+										{
+											udi_cdc_read_buf(&back_buffer[buffer_pos],rx_count);
+											buffer_pos+=rx_count;
+										}
+										break;
+			case USB_STATE_CMD:			switch(udi_cdc_getc())
+										{
+											case CMD_TEST:		udi_cdc_write_buf(&response,sizeof(response));
+																udi_cdc_putc(PROTOCOL_REV);
+																udi_cdc_putc(SOFTWARE_REV);
+																udi_cdc_putc(BOARD_REV);
 																udi_cdc_putc(set.mode);
-																usb_state=usb_state_idle;
+																usb_state=USB_STATE_IDLE;
 																break;
-											case cmd_raw_data:	if(set.mode==mode_usb_single)
-																	usb_state=send_ack(usb_state_raw_single);
-																else if(set.mode==mode_usb_multi)
-																	usb_state=send_ack(usb_state_raw_multi);
+											case CMD_RAW_DATA:	if(set.mode==MODE_USB_SINGLE)
+																	usb_state=send_ack(USB_STATE_RAW_SINGLE);
+																else if(set.mode==MODE_USB_MULTI)
+																	usb_state=send_ack(USB_STATE_RAW_MULTI);
 																else
-																	usb_state=nack_flush(nack_raw_mode);
+																	usb_state=nack_flush(NACK_RAW_MODE);
 																break;
-											case cmd_measure:	udi_cdc_write_buf((adc_sample*)&measure,sizeof(measure));
+											case CMD_MEASURE:	udi_cdc_write_buf((adc_sample*)&measure,sizeof(measure));
 																udi_cdc_putc(FPS>>8);
 																udi_cdc_putc(FPS);
-																usb_state=usb_state_idle;
+																usb_state=USB_STATE_IDLE;
 																break;
-											case cmd_set_read:	usb_state=usb_state_set_read;
+											case CMD_SET_READ:	usb_state=USB_STATE_SET_READ;
 																break;
-											case cmd_set_write:	usb_state=usb_state_set_write;
+											case CMD_SET_WRITE:	usb_state=USB_STATE_SET_WRITE;
 																break;
-											case cmd_set_save:	save_settings();
-																usb_state=send_ack(usb_state_idle);
+											case CMD_SET_SAVE:	save_settings();
+																usb_state=send_ack(USB_STATE_IDLE);
 																break;
-											default:			usb_state=nack_flush(nack_command);
+											default:			usb_state=nack_flush(NACK_COMMAND);
 																break;
 										}
 										break;
-			case usb_state_raw_single:	if(udi_cdc_get_nb_received_data()>=3)
+			case USB_STATE_RAW_SINGLE:	if(rx_count>=3)
 										{
+											usb_state=send_ack(USB_STATE_IDLE);
 											udi_cdc_read_buf(&back_buffer,3);
 											frame_update();
 										}
 										break;
-			case usb_state_raw_multi:	if((udi_cdc_get_nb_received_data()+buffer_pos)>=(set.count*3))
+			case USB_STATE_RAW_MULTI:	if((rx_count+buffer_pos)>=(set.count*3))
 										{
+											usb_state=send_ack(USB_STATE_IDLE);
 											udi_cdc_read_buf(&back_buffer[buffer_pos],(set.count*3-buffer_pos));
 											buffer_pos=0;
-											usb_state=send_ack(usb_state_idle);
 											frame_update();
 										}
-										else if(udi_cdc_get_nb_received_data()>=64)
-											udi_cdc_read_buf(&back_buffer[buffer_pos],udi_cdc_get_nb_received_data());
-										break;
-			case usb_state_set_read:	switch(udi_cdc_getc())
+										else if(rx_count>=32)
 										{
-											case set_mode:				udi_cdc_putc(set.mode);					break;
-											case set_default_mode:		udi_cdc_putc(set.default_mode);			break;
-											case set_timeout_mode:		udi_cdc_putc(set.timeout_mode);			break;
-											case set_timeout_time:		udi_cdc_putc(set.timeout_time);			break;
-											case set_alpha:				udi_cdc_putc(set.alpha);				break;
-											case set_default_alpha:		udi_cdc_putc(set.default_alpha);		break;
-											case set_gamma:				udi_cdc_putc(set.gamma);				break;
-											case set_smooth_time:		udi_cdc_putc(set.smooth_time);			break;
-											case set_alpha_min:			udi_cdc_putc(set.alpha_min);			break;
-											case set_lux_max:			udi_cdc_putc(set.lux_max);				break;
-											case set_stat_Led:			udi_cdc_putc(set.stat_LED);				break;
-											case set_stb_Led:			udi_cdc_putc(set.stb_LED);				break;
-											case set_count:				udi_cdc_putc(set.count);				break;
-											case set_SCP:				udi_cdc_putc(set.SCP);					break;
-											case set_UVP:				udi_cdc_putc(set.UVP);					break;
-											default:					usb_state=nack_flush(nack_read_add);	break;
+											udi_cdc_read_buf(&back_buffer[buffer_pos],rx_count);
+											buffer_pos+=rx_count;
 										}
 										break;
-			case usb_state_set_write:	if(udi_cdc_get_nb_received_data()>=4)
+			case USB_STATE_SET_READ:	if(read_set(udi_cdc_getc(), &usb_buff[0]))
+											udi_cdc_putc(usb_buff[0]);
+										else
+											usb_state=nack_flush(NACK_READ_ADD);
+										break;
+			case USB_STATE_SET_WRITE:	if(udi_cdc_get_nb_received_data()>=4)
 										{
 											udi_cdc_read_buf(&usb_buff,4);
 											if((usb_buff[0]==usb_buff[1])&&(usb_buff[2]==usb_buff[3]))
 											{
-												switch(usb_buff[0])
-												{
-													case set_mode:				mode_update(usb_buff[2]);					break;
-													case set_default_mode:		set.default_mode = usb_buff[2];				break;
-													case set_timeout_mode:		set.timeout_mode = usb_buff[2];				break;
-													case set_timeout_time:		set.timeout_time = usb_buff[2];				break;
-													case set_alpha:				set.alpha = usb_buff[2];					break;
-													case set_default_alpha:		set.default_alpha = usb_buff[2];			break;
-													case set_gamma:				set.gamma = usb_buff[2]; gamma_calc();		break;
-													case set_smooth_time:		set.smooth_time = usb_buff[2];				break;
-													case set_alpha_min:			set.alpha_min = usb_buff[2];				break;
-													case set_lux_max:			set.lux_max = usb_buff[2];					break;
-													case set_stat_Led:			set.stat_LED = usb_buff[2];					break;
-													case set_stb_Led:			set.stb_LED = usb_buff[2];					break;
-													case set_count:				count_update(usb_buff[2]);					break;
-													case set_SCP:				set.SCP = usb_buff[2];						break;
-													case set_UVP:				set.UVP = usb_buff[2];						break;
-													default:					usb_state=nack_flush(nack_write_add);		break;
-												}
+												if (write_set(usb_buff[0], usb_buff[2]))
+													usb_state=send_ack(USB_STATE_IDLE);
+												else
+													usb_state=nack_flush(NACK_WRITE_ADD);
 											}
 											else
-												usb_state=nack_flush(nack_write_crc);
+												usb_state=nack_flush(NACK_WRITE_CRC);
 										}
 										break;
 		}
@@ -197,29 +197,30 @@ void handle_usb(void)
 		usb_state_prev=usb_state;
 	}
 	
-	if((usb_state!=usb_state_idle)	&& (time>=(usb_rx_time+0.2*RTC_freq)))
-		usb_state=nack_flush(nack_timeout|usb_state);
-	if(set.timeout_time)
+	if((usb_state!=USB_STATE_IDLE)	&& (time>=(usb_rx_time+0.5*RTC_FREQ)))
 	{
-		if((set.mode&state_usb)		&& (time>=(usb_rx_time+set.timeout_time*RTC_freq/10)))
+		usb_state=nack_flush(NACK_TIMEOUT|usb_state);
+		buffer_pos=0;
+	}
+	if(set.timeout_time&&(set.timeout_time!=0xFF))
+	{
+		if((set.mode&STATE_USB)		&& (time>=(usb_rx_time+set.timeout_time*RTC_FREQ/10)))
 			mode_update(set.timeout_mode);
 	}
-	if(set.mode==mode_usb_ada)
-		udi_cdc_write_buf(&ack_ada,sizeof(ack_ada));	//UNDONE: handle settings at reset, ada - send ping, disable timeout and gamma
 }
 
 static uint_fast8_t send_ack(uint_fast8_t new_mode)
 {
-	udi_cdc_putc(ack);
+	udi_cdc_putc(ACK);
 	return new_mode;
 }
 
 static uint_fast8_t nack_flush(uint_fast8_t fault_code)
 {
-	udi_cdc_putc(nack_preamble);
+	udi_cdc_putc(NACK_PREAMPLE);
 	while(udi_cdc_is_rx_ready())
 	udi_cdc_getc();
-	return usb_state_idle;
+	return USB_STATE_IDLE;
 }
 
 static Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t length)
@@ -228,7 +229,7 @@ static Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t
 	for(index=0;index<length;index++)
 	{
 		if(buff_a[index]!=buff_b[index])
-		return false;
+			return false;
 	}
 	return true;
 }

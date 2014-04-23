@@ -36,7 +36,7 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 	const uint16_t cscale_11b=2.035*256+0.5;
 	if(ch_mask==ADC_CH0)
 	{
-		mode_update(mode_error_BOP);
+		mode_update(MODE_ERROR_BOP);
 		uvp_val = MulU16X16toH16Round(adc_get_unsigned_result(&ADC,ADC_CH0)<<2,vscale_11b);
 	}
 	else
@@ -54,12 +54,12 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 		temp	= adc_get_signed_result(&ADC,ADC_CH3);	// * 3580 / temp_cal - 2730 = T;
 	
 		//TODO: Test UVP, SCP, BOP
-		if(((current>=scp_threshold)||(voltage<=uvp_threshold))&&(set.mode&state_on))
+		if(((current>=scp_threshold)||(voltage<=uvp_threshold))&&(set.mode&STATE_ON))
 		{
 			if(voltage<=uvp_threshold)
-				mode_update(mode_error_UVP);
+				mode_update(MODE_ERROR_UVP);
 			else
-				mode_update(mode_error_SCP);
+				mode_update(MODE_ERROR_SCP);
 			uvp_val = MulU16X16toH16Round(voltage<<2,vscale_11b);
 			scp_val = MulU16X16toH16Round(current<<2,cscale_11b);
 		}
@@ -108,7 +108,7 @@ void power_down(void)
 {
 	adc_disable(&ADC);
 	sysclk_set_prescalers(SYSCLK_PSADIV_2,SYSCLK_PSBCDIV_1_1);
-	while((set.mode==mode_off)&&!ioport_get_pin_level(USB_VBUS))
+	while((set.mode==MODE_OFF)&&!ioport_get_pin_level(USB_VBUS))
 		sleepmgr_enter_sleep();
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
 	adc_enable(&ADC);

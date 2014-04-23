@@ -33,6 +33,7 @@ void rtc_fps(void);
 /* DMA */
 
 void dma_init(void);
+void dma_update(void);
 void SetupDMA(void);
 
 #endif /* LED_H_ */

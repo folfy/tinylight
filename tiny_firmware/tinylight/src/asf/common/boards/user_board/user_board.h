@@ -16,36 +16,36 @@
 
 #include <conf_board.h>
 
-#define board_rev 0x10			//rev 0x01 = debug_board
+#define BOARD_REV 0x10			//rev 0x01 = debug_board
 /*	uncomment definition to enable additional hardware modules	*/
 //#define IR_avail				//IR-Receiver
 //#define RF_avail 1			//RF-Transceiver
 //#define RF_avail 2			//BT-Transceiver
 //#define UART_avail			//UART-Port
 
-#define software_rev			0x03
-#define RTC_freq				(32768/16)
-#define RTC_time				0.02					//20ms
-#define buffer_size				160
-#define BOP_Threshold			(4.0*310)				//4.0 Volt to prevent BOD
+#define SOFTWARE_REV			0x03
+#define RTC_FREQ				(32768/16)
+#define RTC_TIME				0.02					//20ms
+#define BUFFER_SIZE				160
+#define BOP_THERSHOLD			(4.0*310)				//4.0 Volt to prevent BOD
 
 #define DMA_CHANNEL_LED			0
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
 #define ADC						ADCA
 
-#ifndef board_rev
-#error "board_rev undefined"
+#ifndef BOARD_REV
+#error "BOARD_REV undefined"
 #endif
 
 //////////////////////////////////////////////////////////////////////////
 /* Sens_Light */
 
-#if		board_rev == 0x10
+#if		BOARD_REV == 0x10
 #define Sens_Light_en			IOPORT_CREATE_PIN(PORTA,3)
 #define Sens_Light				IOPORT_CREATE_PIN(PORTA,4)
 #define ADCCH_POS_PIN_Light		ADCCH_POS_PIN1
-#elif	board_rev == 0x01
+#elif	BOARD_REV == 0x01
 #define	Sens_Light				IOPORT_CREATE_PIN(PORTA,1)
 #endif
 
@@ -132,9 +132,9 @@
 //////////////////////////////////////////////////////////////////////////
 /* Button, UART */
 
-#if		board_rev == 0x10
+#if		BOARD_REV == 0x10
 #define BUTTON					IOPORT_CREATE_PIN(PORTR,0)
-#elif	board_rev == 0x01
+#elif	BOARD_REV == 0x01
 #define BUTTON					IOPORT_CREATE_PIN(PORTE,3)
 #endif
 

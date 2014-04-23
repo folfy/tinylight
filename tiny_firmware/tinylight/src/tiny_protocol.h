@@ -8,7 +8,7 @@
 #ifndef TINY_PROTOCOL_H_
 #define TINY_PROTOCOL_H_
 
-#define protocol_rev 0x03
+#define PROTOCOL_REV 0x03
 
 #ifdef _WIN32
 #define term 1
@@ -18,108 +18,104 @@
 #warning "Unknown architecture"
 #endif
 
-
-//UNDONE: Enum modes, etc.
 extern const uint8_t preamble[3+term];
 extern const uint8_t response[3+term];
 extern const uint8_t pre_ada[3+term];
 extern const uint8_t ack_ada[5+term];
 
-#define ack					0x00	//Ack new state 
-#define nack_preamble		0xC0	//state_preamble:	preamble mismatch
-#define nack_command		0xC1	//state_command:	unknown command
-#define nack_raw_mode		0xC2	//state_raw:		not in usb mode
-#define nack_read_add		0xC3	//state_set_read:	address unknown
-#define nack_write_crc		0xC4	//state_set_write:	address or data not matching
-#define nack_write_add		0xC5	//state_set_write:	unknown address
-#define nack_ada_crc		0xD0	//state_ada_header:	length crc mismatch
-#define nack_ada_length		0xD1	//state_ada_header:	length too high
-#define nack_timeout		0xE0	//any state but state_preamble:	interrupted transmission detected, timeout bit 3:0(LSB) represent last usb_state, see block below
-#define nack				0xFF
+enum usb_response_t {
+	ACK						=	0,		//Ack new state 
+	NACK_PREAMPLE			=	100,	//state_idle:		preamble mismatch
+	NACK_COMMAND			=	101,	//state_command:	unknown command
+	NACK_RAW_MODE			=	102,	//state_raw:		not in correct usb mode
+	NACK_READ_ADD			=	103,	//state_set_read:	address unknown
+	NACK_WRITE_CRC			=	104,	//state_set_write:	address or data not matching
+	NACK_WRITE_ADD			=	105,	//state_set_write:	unknown address
+	NACK_ADA_CRC			=	110,	//state_ada_header:	length crc mismatch
+	NACK_ADA_LENGTH			=	111,	//state_ada_header:	length too high
+	NACK_TIMEOUT			=	200,	//Internal value, if received -> fatal error
+	NACK_TIMEOUT_CMD		=	201,	//command not received, transmission timed out
+	NACK_TIMEOUT_RAW_SINGLE	=	202,	//raw data not received, transmission timed out
+	NACK_TIMEOUT_RAW_MULTI	=	203,	//multi raw cmd received, transmission timed out
+	NACK_TIMEOUT_SET_READ	=	204,	//read address not received, transmission timed out
+	NACK_TIMEOUT_SET_WRITE	=	205,	//write address/value not received, transmission timed out
+	NACK_TIMEOUT_ADA_HEADER =	206,	//ada header incomplete, transmission timed out
+	NACK_TIMEOUT_ADA_RAW	=	207,	//ada raw data not received, transmission timed out
+	NACK					=	255		//unknown error
+	};
 
-#define usb_state_idle			0
-#define usb_state_cmd			1
-#define usb_state_raw_single	2
-#define usb_state_raw_multi		3
-#define usb_state_set_read		4
-#define usb_state_set_write		5
-#define usb_state_ada_header	6
-#define usb_state_ada_raw		7
+enum usb_cmd_t {
+	CMD_TEST				=	0x00,
+	CMD_RAW_DATA			=	0x11,
+	CMD_MEASURE				=	0x22,
+	CMD_SET_READ			=	0x33,
+	CMD_SET_WRITE			=	0x44,
+	CMD_SET_SAVE			=	0x55
+	};
 
-#define cmd_test			0x00
-#define cmd_raw_data		0x11
-#define cmd_measure			0x22
-#define cmd_set_read		0x33
-#define cmd_set_write		0x44
-#define cmd_set_save		0x55
-
-#define set_mode			0
-#define set_default_mode	1
-#define set_timeout_mode	2
-#define set_timeout_time	3
-#define set_oversample		4
-#define set_alpha			5
-#define set_default_alpha	6
-#define set_gamma			7
-#define set_smooth_time		8
-#define set_alpha_min		9
-#define set_lux_max			10
-#define set_stat_Led		11
-#define set_stb_Led			12
-#define set_count			13
-#define set_OCP				14
-#define set_OCP_time		15
-#define set_SCP				16
-#define set_UVP				17
-
-#define state_on			0b10000000
-#define state_error			0b01000000
-#define state_usb			0b00100000
-#define state_multi			0b00010000
-#define state_prev			state_error	//	reuse error state bit for default mode = previous mode
+enum set_address_t {
+	set_mode				=	0,
+	set_default_mode		=	1,
+	set_timeout_mode		=	2,
+	set_timeout_time		=	3,
+	set_oversample			=	4,
+	set_alpha				=	5,
+	set_default_alpha		=	6,
+	set_gamma				=	7,
+	set_smooth_time			=	8,
+	set_alpha_min			=	9,
+	set_lux_max				=	10,
+	set_sled_bright			=	11,
+	set_sled_dim			=	12,
+	set_count				=	13,
+	set_SCP					=	14,
+	set_UVP					=	15
+	};
+	
+#define STATE_ON			0b10000000
+#define STATE_ERROR			0b01000000
+#define STATE_USB			0b00100000
+#define STATE_MULTI			0b00010000
+#define STATE_PREV			STATE_ERROR	//	reuse error state bit for default mode = previous mode
 
 enum mode_t {
-	mode_off					=	(	0x00															),
-	mode_usb_single				=	(	0x00	| state_on					| state_usb					),
-	mode_usb_multi				=	(	0x01	| state_on					| state_usb	| state_multi	),
-	mode_usb_ada				=	(	0x08	| state_on					| state_usb	| state_multi	),
-	mode_mood_lamp				=	(	0x00	| state_on												),
-	mode_rainbow				=	(	0x01	| state_on								| state_multi	),
-	mode_colorswirl				=	(	0x02	| state_on								| state_multi	),
-	mode_error_BOP				=	(	0x00				| state_error								),
-	mode_error_UVP				=	(	0x01				| state_error								),
-	mode_error_SCP				=	(	0x04				| state_error								),
-	mode_error_internal			=	(	0x0F				| state_error								)
+	MODE_OFF					=	(	0x00															),
+	MODE_USB_SINGLE				=	(	0x00	| STATE_ON					| STATE_USB					),
+	MODE_USB_MULTI				=	(	0x01	| STATE_ON					| STATE_USB	| STATE_MULTI	),
+	MODE_USB_ADA				=	(	0x08	| STATE_ON					| STATE_USB	| STATE_MULTI	),
+	MODE_MOODLAMP				=	(	0x00	| STATE_ON												),
+	MODE_RAINBOW				=	(	0x01	| STATE_ON								| STATE_MULTI	),
+	MODE_COLORSWIRL				=	(	0x02	| STATE_ON								| STATE_MULTI	),
+	MODE_ERROR_BOP				=	(	0x00				| STATE_ERROR								),
+	MODE_ERROR_UVP				=	(	0x01				| STATE_ERROR								),
+	MODE_ERROR_SCP				=	(	0x04				| STATE_ERROR								),
+	MODE_ERROR_INTERNAL			=	(	0x0F				| STATE_ERROR								)
 };
 
 enum mode_def_t {
-	mode_def_usb_single			=	(	0x00	| state_on					| state_usb					),
-	mode_def_usb_multi			=	(	0x01	| state_on					| state_usb	| state_multi	),
-	mode_def_usb_ada			=	(	0x08	| state_on					| state_usb	| state_multi	),
-	mode_def_mood_lamp			=	(	0x00	| state_on												),
-	mode_def_rainbow			=	(	0x01	| state_on								| state_multi	),
-	mode_def_colorswirl			=	(	0x02	| state_on								| state_multi	),
-	mode_def_prev_off			=	(	0x00				| state_prev								),
-	mode_def_prev_usb_single	=	(	0x00	| state_on	| state_prev	| state_usb					),
-	mode_def_prev_usb_multi		=	(	0x01	| state_on	| state_prev	| state_usb	| state_multi	),
-	mode_def_prev_usb_ada		=	(	0x08	| state_on	| state_prev	| state_usb	| state_multi	),
-	mode_def_prev_mood_lamp		=	(	0x00	| state_on	| state_prev								),
-	mode_def_prev_rainbow		=	(	0x01	| state_on	| state_prev				| state_multi	),
-	mode_def_prev_colorswirl	=	(	0x02	| state_on	| state_prev				| state_multi	)
+	MODE_DEF_MOODLAMP			=	(	0x00	| STATE_ON												),
+	MODE_DEF_RAINBOW			=	(	0x01	| STATE_ON								| STATE_MULTI	),
+	MODE_DEF_COLORSWIRL			=	(	0x02	| STATE_ON								| STATE_MULTI	),
+	MODE_DEF_PREV_OFF			=	(	0x00				| STATE_PREV								),
+	MODE_DEF_PREV_MOODLAMP		=	(	0x00	| STATE_ON	| STATE_PREV								),
+	MODE_DEF_PREV_RAINBOW		=	(	0x01	| STATE_ON	| STATE_PREV				| STATE_MULTI	),
+	MODE_DEF_PREV_COLORSWIRL	=	(	0x02	| STATE_ON	| STATE_PREV				| STATE_MULTI	)
 	};
 
+//timeout_time
+#define TIMEOUT_VBUS		0x00
+#define TIMEOUT_OFF			0xFF
+
 enum oversample_t {
-oversample_off	=	0x00,
-oversample_x2	=	0x01,
-oversample_x4	=	0x02,
-oversample_x8	=	0x03
+OVERSAMPLE_OFF	=	0x00,
+OVERSAMPLE_X2	=	0x01,
+OVERSAMPLE_X4	=	0x02,
+OVERSAMPLE_X8	=	0x03
 };
 
-#define timeout_vbus		0x00
-
-#define alpha_auto			0x00
-#define	scp_off				0x00
-#define uvp_off				0x00
+#define ALPHA_AUTO			0x00
+#define	SCP_OFF				0x00
+#define UVP_OFF				0x00
 
 typedef struct {
 	enum mode_t volatile	mode;

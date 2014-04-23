@@ -46,8 +46,8 @@ static uint_fast8_t gamma_lut[256];
 static uint_fast8_t gamma_ms[256];
 static uint_fast8_t ms_mask;
 
-uint_fast8_t back_buffer [buffer_size*3];
-uint_fast8_t front_buffer[buffer_size*3];
+uint_fast8_t back_buffer [BUFFER_SIZE*3];
+uint_fast8_t front_buffer[BUFFER_SIZE*3];
 
 static volatile Bool gamma_update = false;
 
@@ -87,13 +87,12 @@ static void gamma_map(void)
 	else
 	{
 		for(uint_fast16_t n=0;n<set.count*3;n++)
-		front_buffer[n]=back_buffer[n];
+			front_buffer[n]=back_buffer[n];
 	}
 }
 
-void gamma_calc()
+void gamma_calc(void)
 {
-
 	//split gamma in full exponentiations and 10th roots
 	uint_fast8_t gamma_dec=set.gamma;
 	uint_fast8_t gamma_pot=0;
@@ -107,14 +106,14 @@ void gamma_calc()
 
 	switch(set.oversample)
 	{
-		case 0x01:	ms_mask=0x01;
-		break;
-		case 0x02:	ms_mask=0x03;
-		break;
-		case 0x03:	ms_mask=0x07;
-		break;
-		default:	ms_mask=0x00;
-		break;
+		case OVERSAMPLE_X2:	ms_mask=0x01;
+							break;
+		case OVERSAMPLE_X4:	ms_mask=0x03;
+							break;
+		case OVERSAMPLE_X8:	ms_mask=0x07;
+							break;
+		default:			ms_mask=0x00;
+							break;
 	}
 	uint_fast16_t val_mask=ms_mask;
 	
@@ -141,7 +140,7 @@ void Mood_Lamp(void)
 	static uint_fast32_t time1=0;
 	if(rtc_get_time()>=time1)
 	{
-		time1=rtc_get_time()+0.010*RTC_freq;
+		time1=rtc_get_time()+0.010*RTC_FREQ;
 		hsv_to_rgb(hue1,back_buffer);
 		hue1 = (hue1 + 2) % 1536;
 		frame_update();
@@ -153,7 +152,7 @@ void Rainbow(void)
 	static uint_fast32_t time1=0;
 	if(rtc_get_time()>=time1)
 	{
-		time1=rtc_get_time()+0.010*RTC_freq;
+		time1=rtc_get_time()+0.010*RTC_FREQ;
 		uint_fast16_t hue2 = hue1;
 		for (uint_fast8_t k=0; k<set.count; k++)
 		{
@@ -170,7 +169,7 @@ void Colorswirl(void)
 	static uint_fast32_t time1=0;
 	if(rtc_get_time()>=time1)
 	{
-		time1=rtc_get_time()+0.010*RTC_freq;
+		time1=rtc_get_time()+0.010*RTC_FREQ;
 		/* x=linsin(alpha); x e ]-1...1]= -32767...32768; alpha e [0...259.99]=65535 (1deg=256) */
 		/* sine1, sine2 - 1deg=128 - prevent overflow at 260deg */
 		const uint_fast16_t deg360 = 46080, rad_3 = 17.2*128, rad_03 = 1.72*128;
@@ -268,7 +267,7 @@ void SPI_TIMER_OVF_int(void)
 
 void SPI_DMA_int(dma_callback_t state)
 {
-	if(!(set.mode&state_multi))
+	if(!(set.mode&STATE_MULTI))
 		SetupDMA();
 	tc_restart(&SPI_TIMER);
 	tc_set_resolution(&SPI_TIMER,500000);
@@ -277,7 +276,7 @@ void SPI_DMA_int(dma_callback_t state)
 
 void rtc_fps(void)
 {
-	const uint_fast8_t prescaler = 1/RTC_time+0.5;	//Round
+	const uint_fast8_t prescaler = 1/RTC_TIME+0.5;	//Round
 	static uint_fast8_t cycle=prescaler;
 	if(!--cycle)
 	{
@@ -336,15 +335,22 @@ void dma_init(void)
 	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);
 	
 	tc_set_overflow_interrupt_callback(&SPI_TIMER,SPI_TIMER_OVF_int);
-	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) SPI_DMA_int);	//TODO: Init DMA split
+	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) SPI_DMA_int);
 	dma_enable();
 };
+
+void dma_update(void)
+{
+	dma_channel_set_repeats				(&dmach_conf_single, set.count);
+	dma_channel_set_transfer_count		(&dmach_conf_multi,  set.count*3);
+	SetupDMA();
+}
 
 /* Config DMA in single / multi LED mode */
 void SetupDMA(void)
 {
-	while (dma_channel_is_busy(DMA_CHANNEL_LED));
-	if (set.mode&state_multi)
+	while (dma_channel_is_busy(DMA_CHANNEL_LED));	//DMA_Blocking
+	if (set.mode&STATE_MULTI)
 		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_multi);
 	else
 		dma_channel_write_config(DMA_CHANNEL_LED, &dmach_conf_single);
