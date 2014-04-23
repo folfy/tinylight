@@ -20,52 +20,21 @@
  *	PE3:	D_IN:		Pushbutton
  *
  *	TCD0:	PWM Status Led
- *	RTC:	Blink Status Led
  *	TCD1:	DMA-Wait
  */
 
-#include "main.h"
-#include "tiny_protocol.h"
 #include <stdio.h>
 #include <asf.h>
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include "mul16x16.h"
-#include "data.h"
-#include "linsin.h"
+#include "tiny_protocol.h"
+#include "led.h"
+#include "usb.h"
+#include "set_sled.h"
+#include "misc_adc.h"
 
-
-// framerate statistics
-uint_fast16_t volatile FPS = 0;
-uint_fast16_t volatile frame_count = 0;
-
-uint_fast8_t back_buffer[480];
-uint_fast8_t front_buffer[480];
-
-volatile Bool timeout_flag = false;
-
-volatile uint_fast8_t button_cnt=0;
-volatile uint_fast8_t prev_mode=mode_off;
-
-uint_fast16_t temp_cal = 0;
-
-volatile Bool update_frame = false;
-volatile Bool gamma_update = false;
-volatile Bool usb_data_pending = false;
-volatile Bool mode_select = false;
-volatile Bool blink_en=false;
-volatile Bool blink_state;
-volatile Bool sleeping=false;
-
-settings set;
-volatile adc_sample measure={0,0,0,0};
-
-void RTC_Alarm(uint32_t time);
-void TCD1_OVF_int(void);
-void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 #ifdef IR_avail
-	static void IR_init(void);
+static void IR_init(void);
 #endif
+<<<<<<< HEAD
 #ifdef RF_avail
 #if		RF_avail==2
 	static void BT_init(void);
@@ -122,61 +91,24 @@ void RTC_Alarm(uint32_t time)
 	}
 	rtc_set_alarm(alarm_prev+=alarm);
 }
+=======
+>>>>>>> dev
 
-void ADCA_CH3_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
-{
-	const uint_fast8_t mean = 128, mshift = 7;	// 128 =  2^7 (+ 2^9 = 2^16 - avoid shifting)
-	static uint_fast8_t adc_cnt = mean;
-	static int_fast32_t  led_voltage_sum = 0, led_current_sum = 0, light_sum = 0, temp_sum = 0;
-
-	led_voltage_sum += adc_get_unsigned_result(&ADCA,ADC_CH0);
-	led_current_sum += adc_get_unsigned_result(&ADCA,ADC_CH1);
-	light_sum		+= adc_get_unsigned_result(&ADCA,ADC_CH2);
-	temp_sum		+= adc_get_unsigned_result(&ADCA,ADC_CH3);
-	
-	adc_cnt--;
-	if (!adc_cnt)
-	{
-		if(led_voltage_sum>0)
-			measure.voltage = (led_voltage_sum * 1651)	>> (mshift+9);	//2047 / 6.6V/V		* 1		= 0.3102 U/mV  -> 3.224 mV/U * 512 (2^9)	= 1,651
-		else
-			measure.voltage = 0;
-		led_voltage_sum = 0;
-		
-		if((led_current_sum>0) && set.mode)
-			measure.current = (led_current_sum * 1042)	>> (mshift+9);	//2047 * 0.015V/A	* 16	= 0.4913 U/mA  -> 2.036 mA/U * 512 (2^9)	= 1,042
-		else
-			measure.current = 0;
-		led_current_sum = 0;			
-		
-		if(light_sum>0)
-			measure.light	= light_sum					>> (mshift-1);	//2047 * 0.48mV/Lux * 1/2	= 0.4913 U/Lux -> 2.035 Lux/U (high sensor tolerance - rough value)
-		else
-			measure.light	= 0;
-		light_sum = 0;
-										
-		if(temp_sum>0)
-			measure.temp	= (temp_sum * 3580 / (temp_cal+mean)) - 2730;	//cal=85C, 0V=0K, temperature = 1/10C
-		else
-			measure.temp	= 0;
-		temp_sum = 0;
-		
-		adc_cnt = mean;
-	}
-}
+static void RTC_Alarm(uint32_t time);
 
 int main (void)
 {
 	board_init();
 	read_settings();
 	dma_init();
-	callback_init();
+	rtc_set_callback(RTC_Alarm);
+	rtc_set_alarm_relative(0);
 	#ifdef IR_avail
 		IR_init();
 	#endif
-	temp_cal=adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2; // calibration data is for unsigned mode, which has a positive offset of about 200
-	adc_enable(&ADCA);
+	adc_init();
 	gamma_calc();
+<<<<<<< HEAD
 	udc_start();
 	if (!udc_include_vbus_monitoring())
 	{
@@ -191,206 +123,68 @@ int main (void)
 			BT_init();
 		#endif
 	#endif
+=======
+	usb_init();
+		
+>>>>>>> dev
 	while(1)
 	{
-		if (usb_data_pending) 
-		{
-			if (read_USB() & !timeout_flag)		
-				udi_cdc_putc(ack);
-			else 
-			{ 
-				timeout_flag = false;
-				udi_cdc_putc(nack);
-			}
-			usb_data_pending = false;
-			while(udi_cdc_is_rx_ready()) udi_cdc_getc();
-		}
-		if(set.mode==mode_off)
+		handle_usb();
+		if(set.mode==MODE_OFF)
 			power_down();
 		else
 		{
 			switch (set.mode)
 			{
-				//case mode_light_bar:	status_bar(measure.light, 4000, set.count); SPI_start(); break;
-				case mode_mood_lamp:	Mood_Lamp(set.count); break;
-				case mode_rainbow:		Rainbow(set.count);	break;
-				case mode_colorswirl:	Colorswirl(set.count); break;
+				case MODE_MOODLAMP:	Mood_Lamp();	break;
+				case MODE_RAINBOW:		Rainbow();		break;
+				case MODE_COLORSWIRL:	Colorswirl();	break;
+				default: break;
 			}
-			frame_update(false);		
+			handle_led_refresh();	
 		}
 			
 	}
 }
 
-/* ~~~~~~~~~~~~~~~~~~~~~~~ 	MISC		~~~~~~~~~~~~~~~~~~~~~~~ */
-
-void callback_init(void)
+//Button, Status_LED, FPS count
+static void RTC_Alarm(uint32_t time)
 {
-	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) DMA_Led_int);
-	tc_set_overflow_interrupt_callback(&TCD1,TCD1_OVF_int);
-	adc_set_callback(&ADCA,ADCA_CH3_int);
-	rtc_set_callback(RTC_Alarm);
-	rtc_set_alarm_relative(0);
-	cpu_irq_enable();
-}
-
-void power_down(void)
-{
-	sleeping = true;
-	adc_disable(&ADCA); 
-	sysclk_set_prescalers(SYSCLK_PSADIV_2,SYSCLK_PSBCDIV_1_1);
-	while((set.mode==mode_off)&&!ioport_get_pin_level(USB_VBUS))
-		sleepmgr_enter_sleep(); 
-	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
-	adc_enable(&ADCA);
-	sleeping = false;
-}
-
-void button_update(Bool key_state)
-{
-	if(set.mode==mode_off)
+	const uint_fast16_t alarm_cycle = (RTC_TIME*RTC_FREQ+0.5);
+	static uint_fast32_t alarm_prev = 0;
+	
+	rtc_button(time);
+	rtc_sled();
+	rtc_fps();
+	
+	if(time > (UINT32_MAX-RTC_FREQ*3600*24))	//prevent rtc overflow if there are less than 24h remaining
 	{
-		if (set.default_mode & mode_prev)
-		{
-			if(prev_mode)
-				mode_update(prev_mode);
-			else
-				mode_update(set.default_mode & !mode_prev);	
-		}
-		else
-			mode_update(set.default_mode);
+		if( !(set.mode&STATE_ON) || (time >= (UINT32_MAX-alarm_cycle)) )	// delay as long as required or possible
+			reset_do_soft_reset();	// TODO: Review RTC_Overflow
 	}
-	else
-	{
-		if(key_state)
-		{
-			//long
-			if (set.mode != mode_off)
-			{
-				mode_select ^= true;
-				status_led_update();
-			}
-		}
-		else
-		{
-			//short
-			if(mode_select)
-			{
-				//Change Mode
-				switch(set.mode)
-				{
-					case mode_mood_lamp:	mode_update(mode_rainbow); break;
-					case mode_rainbow:		mode_update(mode_colorswirl); break;
-					//case mode_colorswirl:	mode_update(mode_mood_lamp); break;
-					default:				mode_update(mode_mood_lamp); break;
-				}
-			}
-			else
-				mode_update(mode_off);
-		}
-	}
+	rtc_set_alarm(alarm_prev+=alarm_cycle);
 }
 
-void mode_update(uint_fast8_t mode)
+#define EEMEM __attribute__((section(".eeprom")))
+settings set_preset EEMEM =
 {
-	if(set.mode != mode)
-	{
-		prev_mode=set.mode;
-		set.mode = mode;
-		if (set.mode&state_on)	
-		{
-			ioport_set_pin_level(MOSFET_en,HIGH);
-			SetupDMA(set.mode&state_multi);
-		}
-		else
-			ioport_set_pin_level(MOSFET_en,LOW);
-		status_led_update();
-	}
-}
-
-void status_led_update(void)
-{
-
-	if (mode_select)
-	{
-		tc_write_cc(&TCD0,TC_CCA,set.stat_LED/3);
-		tc_write_cc(&TCD0,TC_CCB,set.stat_LED/2);
-		tc_write_cc(&TCD0,TC_CCC,set.stat_LED/2);
-		tc_enable_cc_channels(&TCD0,TC_CCAEN);
-		tc_enable_cc_channels(&TCD0,TC_CCBEN);
-		tc_enable_cc_channels(&TCD0,TC_CCCEN);
-	}
-	else
-	{
-		if(set.mode&state_on)
-		{
-			blink_en=false;
-			if(set.stat_LED)
-			{
-				if(set.mode&state_usb)
-				{
-					tc_enable_cc_channels(&TCD0,TC_CCAEN);
-					tc_disable_cc_channels(&TCD0,TC_CCBEN);
-					tc_disable_cc_channels(&TCD0,TC_CCCEN);
-					tc_write_cc(&TCD0, TC_CCA, set.stat_LED);
-				}
-				else
-				{
-					tc_disable_cc_channels(&TCD0,TC_CCAEN);
-					tc_enable_cc_channels(&TCD0,TC_CCBEN);
-					tc_disable_cc_channels(&TCD0,TC_CCCEN);
-					tc_write_cc(&TCD0, TC_CCB, set.stat_LED);
-				}
-			}
-			else
-				status_led_off();
-		}
-		else
-		{
-			if(set.mode&state_error)
-			{
-				blink_en=true;
-				blink_state=false;
-				tc_write_cc(&TCD0, TC_CCC, 0xFF);
-			}
-			else
-			{
-				if(set.stb_LED)
-				{
-					blink_en=false;
-					tc_disable_cc_channels(&TCD0,TC_CCAEN);
-					tc_enable_cc_channels(&TCD0,TC_CCBEN);
-					tc_enable_cc_channels(&TCD0,TC_CCCEN);
-					tc_write_cc(&TCD0, TC_CCB, set.stb_LED/4);
-					tc_write_cc(&TCD0, TC_CCC, set.stb_LED);
-				}
-				else
-					status_led_off();
-			}
-		}
-	}
-}
-
-void status_led_off(void)
-{
-	tc_disable_cc_channels(&TCD0,TC_CCAEN);
-	tc_disable_cc_channels(&TCD0,TC_CCBEN);
-	tc_disable_cc_channels(&TCD0,TC_CCCEN);	
-}
-
-void status_led_blink(void) //Error blinking
-{
-	if(blink_state)
-	{
-		tc_disable_cc_channels(&TCD0,TC_CCCEN);
-		blink_state=true;
-	}
-	else
-	{
-		tc_enable_cc_channels(&TCD0,TC_CCCEN);
-		blink_state=false;
-	}	
-}
+	/*set.mode			=*/ MODE_OFF,
+	/*set.mode_default	=*/	MODE_DEF_PREV_OFF,
+	/*set.timeout_mode	=*/	MODE_OFF,
+	/*set.timeout_time	=*/	TIMEOUT_VBUS,
+	/*set.oversample	=*/	OVERSAMPLE_X4,			//4x oversample
+	/*set.alpha			=*/ 0xFF,
+	/*set.default_alpha	=*/	0xFF,
+	/*set.gamma			=*/	2.2				*10,	//alpha=2.2
+	/*set.smooth_time	=*/	5				*2,		//time=5s
+	/*set.alpha_min		=*/	0,
+	/*set.lux_max		=*/	1000			/40,	//brightness=1000lux
+	/*set.stat_LED		=*/	50				*2.55,	//50%
+	/*set.stb_LED		=*/	5				*2.55,	//5%
+	/*set.count			=*/	80,
+	/*set.SCP			=*/	SCP_OFF,
+	/*set.UVP			=*/	UVP_OFF
+};
 
 #ifdef IR_avail
 
@@ -573,7 +367,7 @@ ISR (PORTB_INT0_vect)
 	
 void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 {
-	uint_fast8_t new_mode = mode_usb_single;
+	uint_fast8_t new_mode = MODE_USB_SINGLE;
 	static uint_fast8_t last_cmd;
 	bool save = false;
 	if (addr != IR_addr) {return;} 
@@ -607,14 +401,14 @@ void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 			case IR_pink_color_key:			change_color(18,&back_buffer[0], save); break;
 			case IR_skyblue_2_color_key:	change_color(19,&back_buffer[0], save); break;
 					
-			case IR_jump7_key:			new_mode = mode_rainbow; break;
-			case IR_fade3_key:			new_mode = mode_mood_lamp; break;
-			case IR_fade7_key:			new_mode = mode_colorswirl; break;
-			case IR_off_key:	if(set.mode==mode_off)	{
-									if (set.default_mode & mode_prev) {	if(prev_mode) { new_mode = prev_mode;} else { new_mode = set.default_mode & !mode_prev;} }
+			case IR_jump7_key:			new_mode = MODE_RAINBOW; break;
+			case IR_fade3_key:			new_mode = MODE_MOODLAMP; break;
+			case IR_fade7_key:			new_mode = MODE_COLORSWIRL; break;
+			case IR_off_key:	if(set.mode==MODE_OFF)	{
+									if (set.default_mode & STATE_PREV) {	if(!mode_set_prev()) mode_update(set.default_mode & !STATE_PREV); }
 									else { new_mode = set.default_mode;	}
 								} else	{
-									new_mode = mode_off;
+									new_mode = MODE_OFF;
 								}
 								break;
 			}
@@ -630,7 +424,7 @@ void handle_remote_key(uint_fast8_t addr, uint_fast8_t cmd, bool repeat)
 		case IR_blue_minus_key:		if (back_buffer[2] > 0)		back_buffer[2]--;	break;
 		default: last_cmd = cmd;
 	}
-	if (set.mode == mode_usb_single)	frame_update(true);
+	if (set.mode == MODE_USB_SINGLE)	frame_update(true);
 };
 
 void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
@@ -649,6 +443,7 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 }
 
 #endif
+<<<<<<< HEAD
 
 #ifdef RF_avail
 #if		RF_avail==2
@@ -728,84 +523,14 @@ void save_settings(void)
 	eeprom_disable_mapping();
 	nvm_eeprom_atomic_write_page(set_EE_offset);
 }
+=======
+>>>>>>> dev
 
-/* ~~~~~~~~~~~~~~~~~~~~~~~	LED-MODE	~~~~~~~~~~~~~~~~~~~~~~~ */
 
-uint_fast16_t gamma_lut[256];
 
-void frame_update(Bool buffer_update)
-{
-	if(buffer_update)
-	{
-		if(set.gamma)
-			gamma_update=true;
-		else
-		{
-			for(uint_fast16_t n=0;n<set.count*3;n++)
-			{
-				front_buffer[n]=back_buffer[n];
-			}
-			SPI_start();
-		}
-	}
-	else if(gamma_update)
-	{
-		gamma_update=false;
-		if(set.gamma&&!dma_channel_is_busy(DMA_CHANNEL_LED))
-		{
-			SPI_start(); // avoid delay if mapping takes longer than 500µs						
-			gamma_map();
-		}
-	}
-}
 
-void gamma_map(void)
-{
-	static uint_fast8_t run=0;
-	for(uint_fast16_t n=0;n<set.count*3;n++)
-	{
-		uint_fast8_t val=back_buffer[n];
-		uint_fast16_t val_corr=gamma_lut[val];
-		front_buffer[n]=val_corr>>2;
-		if(val_corr%4>run)				//oversample pwm for increased resolution
-			front_buffer[n]++;
-	}
-	if(++run==4)
-		run=0;
-}
 
-void gamma_calc(void)
-{
-	//split gamma in full exponentiations and 10th roots
-	uint_fast8_t gamma_dec=set.gamma;
-	uint_fast8_t gamma_pot=0;
-	while(gamma_dec>=10)
-	{
-		gamma_pot++;
-		gamma_dec-=10;
-	}
-	
-	uint_fast8_t x=0;
-	for(;;)
-	{
-		uint_fast16_t y=65535;
-		uint_fast16_t root=(nvm_flash_read_byte( (flash_addr_t) &root_10[x]+1) <<8)+nvm_flash_read_byte( (flash_addr_t) &root_10[x]);
-		
-		for(uint_fast8_t cnt=gamma_pot;cnt;cnt--)
-		y=MulU16X16toH16Round(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
-		for(uint_fast8_t cnt=gamma_dec;cnt;cnt--)
-		y=MulU16X16toH16Round(y,root);
-		
-		gamma_lut[x]=MulU16X16toH16Round(y,1020);
-		
-		if(x==255)
-			break;
-		x++;
-	}
-}
-
-uint_fast16_t hue1 = 0;
-
+<<<<<<< HEAD
 void Mood_Lamp(uint_fast8_t anzahl_Leds)
 {
 	static uint_fast32_t time1=0;
@@ -1195,3 +920,5 @@ uint_fast8_t get_USB_char(void)
 	timeout_flag = true;
 	return 0;
 }
+=======
+>>>>>>> dev

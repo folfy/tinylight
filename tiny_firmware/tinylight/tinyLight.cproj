@@ -408,6 +408,24 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src\misc_adc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\misc_adc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\set_sled.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\set_sled.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\usb.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\usb.h">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="atmel_devices_cdc.cat">
       <SubType>compile</SubType>
     </None>
@@ -582,7 +600,10 @@
     <None Include="src\config\conf_timeout.h">
       <SubType>compile</SubType>
     </None>
-    <Compile Include="src\data.h">
+    <Compile Include="src\led.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\led.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\linsin.c">
@@ -594,13 +615,13 @@
     <Compile Include="src\main.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\main.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="src\mul16x16.c">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\mul16x16.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\tiny_protocol.c">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\tiny_protocol.h">
