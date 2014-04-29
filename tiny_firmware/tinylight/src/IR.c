@@ -5,10 +5,13 @@
  *  Author: Martin
  */ 
 
+#ifdef IR_avail
+
 #include <stdio.h>
 #include <asf.h>
 #include "tiny_protocol.h"
 #include "IR.h"
+#include "led.h"
 #include "set_sled.h"
 
 volatile uint8_t ir_state = 0;
@@ -192,3 +195,5 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 		nvm_eeprom_write_byte(addr+2,rgb_buffer[2]);
 	}
 }
+
+#endif

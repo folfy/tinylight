@@ -418,6 +418,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src\BT.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\BT.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\IR.c">
       <SubType>compile</SubType>
     </Compile>

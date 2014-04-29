@@ -71,13 +71,6 @@ void TCC0_OVF_int(void);
 void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat);
 void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[],bool save);
 
-extern void mode_set_prev(void);
-extern void mode_update(uint_fast8_t mode);
-extern void frame_update(void);
-
-extern settings set;
-extern uint_fast8_t back_buffer [BUFFER_SIZE*3];
-
 #define TCC0_cycle 32000000/64
 #define nec_start_max 0.015*TCC0_cycle
 #define nec_start_min 0.012*TCC0_cycle
