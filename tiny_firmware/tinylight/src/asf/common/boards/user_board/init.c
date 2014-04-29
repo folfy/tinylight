@@ -18,6 +18,10 @@ static void usart_init_spi_pull_up(USART_t *usart, const usart_spi_options_t *op
 
 void board_init()
 {
+	#if RF_avail==3
+	PORTCFG_VPCTRLA=PORTCFG_VP02MAP_PORTC_gc;
+	VPORT0_DIR|=PIN0_bm|PIN2_bm|PIN4_bm|PIN5_bm|PIN6_bm|PIN7_bm;
+	#endif
 	/* Init clocks*/
 	sysclk_init();
 	
@@ -30,7 +34,7 @@ void board_init()
 
 	sled_init();	// Init status LED	
 	Vbus_init();	// Init VBus detection
-	led_init();		// Init LED strip USART as SPI Master
+	led_init();		// Init LED strip USART as SPI Master and led latch delay timer
 	ADC_init();		// Init ADC controller
 	ioport_set_pin_mode(BUTTON,IOPORT_MODE_PULLUP|IOPORT_MODE_INVERT_PIN);	// Init button IO
 	rtc_init();		// Init RTC
@@ -38,11 +42,6 @@ void board_init()
 	/* Init interrupt controller */
 	pmic_init();
 	
-	/* Init SPI latch delay timer */
-	tc_enable(&SPI_TIMER);
-	tc_set_overflow_interrupt_level(&SPI_TIMER,TC_INT_LVL_MED);
-	tc_write_period(&SPI_TIMER,500);
-	cpu_irq_enable();
 }
 
 /* Init VBus detection io */
@@ -67,7 +66,7 @@ static void sled_init(void)
 	tc_enable(&SLED_TIMER);
 	tc_set_wgm(&SLED_TIMER, TC_WG_SS);		//Single Slope PWM
 	tc_write_period(&SLED_TIMER, 0xFF);		//8 Bit PWM
-	tc_set_resolution(&SLED_TIMER, 32000000); //32 Mhz Clk
+	tc_set_resolution(&SLED_TIMER, 1000000);//3.92 kHz PWM freq
 	
 	tc_write_cc(&SLED_TIMER,SLED_TC_CC_B,255);		//SLED: Cyan
 	tc_write_cc(&SLED_TIMER,SLED_TC_CC_G,255);
@@ -85,6 +84,11 @@ static void led_init(void)
 	usart_init_spi_pull_up(&USARTC0,&USART_SPI_OPTIONS);
 	ioport_set_pin_mode(LED_TX, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
 	ioport_set_pin_dir(LED_TX,IOPORT_DIR_OUTPUT);
+	
+	/* Init SPI latch delay timer */
+	tc_enable(&SPI_TIMER);
+	tc_set_overflow_interrupt_level(&SPI_TIMER,TC_INT_LVL_MED);
+	tc_write_period(&SPI_TIMER,500);
 }
 
 /* Init ADC controller */
@@ -97,7 +101,7 @@ static void ADC_init(void)
 	adcch_read_configuration(&ADC,ADC_CH0, &adcch_conf);
 	
 	adc_set_conversion_parameters(&adc_conf,ADC_SIGN_ON,ADC_RES_12, ADC_REF_BANDGAP);
-	adc_set_conversion_trigger(&adc_conf, ADC_TRIG_FREERUN_SWEEP, 4, 0);
+	adc_set_conversion_trigger(&adc_conf, ADC_TRIG_EVENT_SWEEP, 4, ADC_EVCH);
 	adc_set_current_limit(&adc_conf,ADC_CURRENT_LIMIT_HIGH);
 	adc_set_gain_impedance_mode(&adc_conf,ADC_GAIN_LOWIMPEDANCE);
 	adc_set_clock_rate(&adc_conf,125000);
@@ -105,12 +109,9 @@ static void ADC_init(void)
 	
 	adc_write_configuration(&ADC,&adc_conf);
 	
-	adc_set_compare_value(&ADC,BOP_THERSHOLD);	//prevent brownout
-	
 	/* led supply voltage */
 	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Volt,ADCCH_NEG_NONE,1);
 	adcch_write_configuration(&ADC,ADC_CH0, &adcch_conf);
-	ADCA_CH0_INTCTRL=ADC_CH_INTMODE_BELOW_gc|ADC_CH_INTLVL_HI_gc;
 	
 	/* led current */
 	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Sense,ADCCH_NEG_PIN_Sense,16);
@@ -124,6 +125,9 @@ static void ADC_init(void)
 	adcch_set_input(&adcch_conf,ADCCH_POS_TEMPSENSE,ADCCH_NEG_NONE,1);
 	adcch_enable_interrupt(&adcch_conf);
 	adcch_write_configuration(&ADC,ADC_CH3,&adcch_conf);
+	
+	sysclk_enable_module(SYSCLK_PORT_GEN, SYSCLK_EVSYS);
+	ADC_EVCH_MUX=EVSYS_CHMUX_PRESCALER_16384_gc;	//ADC trigger:	EVSYS_CH0 -> (F_CPU / 16384: 1.95 kHz)
 }
 
 

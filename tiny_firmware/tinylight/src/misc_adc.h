@@ -14,8 +14,10 @@
 extern volatile adc_sample measure;
 
 void adc_init(void);
-void protection_reset(void);
-void uvp_scp_update(void);
+
+void max_val_reset(void);
+uint_fast16_t get_min_voltage(void);
+uint_fast16_t get_max_current(void);
 
 /* Sleep */
 

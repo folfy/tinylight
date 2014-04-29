@@ -31,14 +31,12 @@
 #include "set_sled.h"
 #include "misc_adc.h"
 
-#ifdef IR_avail
+#ifdef	IR_avail
 static void IR_init(void);
 #endif
 
-#ifdef RF_avail
 #if		RF_avail==2
-	static void BT_init(void);
-#endif
+static void BT_init(void);
 #endif
 
 //Button, Status_LED, FPS count
@@ -46,6 +44,7 @@ static void RTC_Alarm(uint32_t time);
 
 int main (void)
 {
+
 	board_init();
 	read_settings();
 	dma_init();
@@ -56,30 +55,26 @@ int main (void)
 	#endif
 	adc_init();
 	gamma_calc();
+	cpu_irq_enable();
 	usb_init();
-	#ifdef RF_avail
-		#if		RF_avail==2
-			BT_init();
-		#endif
+	
+	#if	RF_avail==2
+	BT_init();
 	#endif
-
+	
 	while(1)
 	{
-		handle_usb();
 		if(set.mode==MODE_OFF)
 			power_down();
-		else
-		{
-			switch (set.mode)
-			{
-				case MODE_MOODLAMP:		Mood_Lamp();	break;
-				case MODE_RAINBOW:		Rainbow();		break;
-				case MODE_COLORSWIRL:	Colorswirl();	break;
-				default: break;
-			}
-			handle_led_refresh();	
-		}
-		//TODO: check main() exec time, may add rms calc
+
+		uint32_t time=rtc_get_time();
+			
+		handle_usb();
+		handle_auto_modes();
+			
+		//if((rtc_get_time()>=time+0.01*RTC_FREQ)&&set.mode!=MODE_OFF)
+		//UNDONE: implement new error handling 
+		//TODO: add rms calc -> main
 	}
 }
 
@@ -88,10 +83,10 @@ static void RTC_Alarm(uint32_t time)
 {
 	const uint_fast16_t alarm_cycle = (RTC_TIME*RTC_FREQ+0.5);
 	static uint_fast32_t alarm_prev = 0;
-	
 	rtc_button(time);
 	rtc_sled();
 	rtc_fps();
+	rtc_usb(time);
 	
 	if(time > (UINT32_MAX-RTC_FREQ*3600*24))	//prevent rtc overflow if there are less than 24h remaining
 	{
@@ -359,7 +354,6 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 
 #endif
 
-#ifdef RF_avail
 #if		RF_avail==2
 static void BT_init(void)
 {
@@ -393,5 +387,4 @@ ISR(BT_USART_vect)
 	udi_cdc_putc(usart_getchar(BT_USART));
 };
 
-#endif
 #endif

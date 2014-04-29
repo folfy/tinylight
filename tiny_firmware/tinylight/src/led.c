@@ -10,13 +10,18 @@
 #include "linsin.h"
 #include "mul16x16.h"
 #include "tiny_protocol.h"
+#include "set_sled.h"
 #include "led.h"
 
-extern settings set;
+uint_fast8_t back_buffer [BUFFER_SIZE*3];
+uint_fast8_t front_buffer[BUFFER_SIZE*3];
 
 // framerate statistics
 volatile uint_fast16_t FPS = 0;
 volatile uint_fast16_t frame_count = 0;
+
+static volatile Bool update_gamma = false;
+static volatile Bool update_frame = false;
 
 //////////////////////////////////////////////////////////////////////////
 /* LED Software */
@@ -46,28 +51,26 @@ static uint_fast8_t gamma_lut[256];
 static uint_fast8_t gamma_ms[256];
 static uint_fast8_t ms_mask;
 
-uint_fast8_t back_buffer [BUFFER_SIZE*3];
-uint_fast8_t front_buffer[BUFFER_SIZE*3];
-
-static volatile Bool gamma_update = false;
-
 static void gamma_map(void);
 static void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t rgb_buffer[]);
-static void SPI_start(void);
-
-void handle_led_refresh(void)
-{
-	if(gamma_update&&!dma_channel_is_busy(DMA_CHANNEL_LED))
-	{
-		gamma_update=false;
-		SPI_start(); // avoid delay if mapping takes longer than 500µs
-		gamma_map();
-	}
-}
 
 void frame_update(void)
 {
-	gamma_update=true;
+	if(dma_channel_is_busy(DMA_CHANNEL_LED))
+		update_gamma=true;
+	else
+	{
+		if(SPI_TIMER.CTRLA)
+		{
+			update_frame=true;
+			gamma_map();
+		}
+		else
+		{
+			gamma_map();
+			dma_channel_enable(DMA_CHANNEL_LED);
+		}
+	}
 }
 
 static void gamma_map(void)
@@ -78,6 +81,7 @@ static void gamma_map(void)
 		for(uint_fast16_t n=0;n<set.count*3;n++)
 		{
 			uint_fast8_t val=back_buffer[n];
+			val=(val*set.alpha)>>8;				//TODO: Test alpha, implement auto_alpha
 			front_buffer[n]=gamma_lut[val];
 			if(gamma_ms[val]>run)				//oversample pwm for increased resolution
 			front_buffer[n]++;
@@ -106,14 +110,10 @@ void gamma_calc(void)
 
 	switch(set.oversample)
 	{
-		case OVERSAMPLE_X2:	ms_mask=0x01;
-							break;
-		case OVERSAMPLE_X4:	ms_mask=0x03;
-							break;
-		case OVERSAMPLE_X8:	ms_mask=0x07;
-							break;
-		default:			ms_mask=0x00;
-							break;
+		case OVERSAMPLE_X2:	ms_mask=0x01;	break;
+		case OVERSAMPLE_X4:	ms_mask=0x03;	break;
+		case OVERSAMPLE_X8:	ms_mask=0x07;	break;
+		default:			ms_mask=0x00;	break;
 	}
 	uint_fast16_t val_mask=ms_mask;
 	
@@ -123,7 +123,7 @@ void gamma_calc(void)
 		uint_fast16_t root=(nvm_flash_read_byte( (flash_addr_t) &root_10[x]+1) <<8)+nvm_flash_read_byte( (flash_addr_t) &root_10[x]);
 		
 		for(uint_fast8_t cnt=gamma_pot;cnt;cnt--)
-		y=MulU16X16toH16Round(y,x*257);	//marginal error by shifting (equals div 256) instead of dividing by 255 is left
+		y=MulU16X16toH16Round(y,x*257);	// reduce shifting errors (equals div 256) -> x e [0,254]  (reduced range due to brightness adjustment)
 		for(uint_fast8_t cnt=gamma_dec;cnt;cnt--)
 		y=MulU16X16toH16Round(y,root);
 
@@ -133,73 +133,75 @@ void gamma_calc(void)
 	}
 }
 
+void handle_auto_modes(void)
+{
+	static uint_fast32_t time1=0;
+	if(rtc_get_time()>=time1)
+	{
+		time1=rtc_get_time()+0.010*RTC_FREQ;
+		switch (set.mode)
+		{
+			case MODE_MOODLAMP:		Mood_Lamp();	break;
+			case MODE_RAINBOW:		Rainbow();		break;
+			case MODE_COLORSWIRL:	Colorswirl();	break;
+			default: break;
+		}
+	}
+}
+
+
 static uint_fast16_t hue1 = 0;
 
 void Mood_Lamp(void)
 {
-	static uint_fast32_t time1=0;
-	if(rtc_get_time()>=time1)
-	{
-		time1=rtc_get_time()+0.010*RTC_FREQ;
-		hsv_to_rgb(hue1,back_buffer);
-		hue1 = (hue1 + 2) % 1536;
-		frame_update();
-	}
+	hsv_to_rgb(hue1,back_buffer);
+	hue1 = (hue1 + 2) % 1536;
+	frame_update();
 }
 
 void Rainbow(void)
 {
-	static uint_fast32_t time1=0;
-	if(rtc_get_time()>=time1)
+	uint_fast16_t hue2 = hue1;
+	for (uint_fast8_t k=0; k<set.count; k++)
 	{
-		time1=rtc_get_time()+0.010*RTC_FREQ;
-		uint_fast16_t hue2 = hue1;
-		for (uint_fast8_t k=0; k<set.count; k++)
-		{
-			hsv_to_rgb(hue2, &back_buffer[k*3]);
-			hue2  += 40;
-		}
-		hue1 = (hue1 + 4) % 1536;
-		frame_update();
+		hsv_to_rgb(hue2, &back_buffer[k*3]);
+		hue2  += 40;
 	}
+	hue1 = (hue1 + 4) % 1536;
+	frame_update();
 }
 
 void Colorswirl(void)
 {
-	static uint_fast32_t time1=0;
-	if(rtc_get_time()>=time1)
-	{
-		time1=rtc_get_time()+0.010*RTC_FREQ;
-		/* x=linsin(alpha); x e ]-1...1]= -32767...32768; alpha e [0...259.99]=65535 (1deg=256) */
-		/* sine1, sine2 - 1deg=128 - prevent overflow at 260deg */
-		const uint_fast16_t deg360 = 46080, rad_3 = 17.2*128, rad_03 = 1.72*128;
-		static uint_fast16_t sine1 = 0;
+	/* x=linsin(alpha); x e ]-1...1]= -32767...32768; alpha e [0...259.99]=65535 (1deg=256) */
+	/* sine1, sine2 - 1deg=128 - prevent overflow at 260deg */
+	const uint_fast16_t deg360 = 46080, rad_3 = 17.2*128, rad_03 = 1.72*128;
+	static uint_fast16_t sine1 = 0;
 		
-		uint_fast16_t sine2 = sine1;
-		uint_fast16_t hue2 = hue1;
+	uint_fast16_t sine2 = sine1;
+	uint_fast16_t hue2 = hue1;
 
-		for (uint_fast8_t k=0; k<set.count; k++)
-		{
-			uint_fast8_t rgb_buffer[3];
-			uint_fast8_t bright;
-			hsv_to_rgb(hue2, rgb_buffer);
-			if(sine2 >= deg360)
-			sine2-= deg360;
-			bright = linsin_360(sine2)+127;
+	for (uint_fast8_t k=0; k<set.count; k++)
+	{
+		uint_fast8_t rgb_buffer[3];
+		uint_fast8_t bright;
+		hsv_to_rgb(hue2, rgb_buffer);
+		if(sine2 >= deg360)
+		sine2-= deg360;
+		bright = linsin_360(sine2)+127;
 			
-			back_buffer[k*3]	=	bright * rgb_buffer[0] >> 8;		//R
-			back_buffer[k*3+1]	=	bright * rgb_buffer[1] >> 8;		//G
-			back_buffer[k*3+2]	=	bright * rgb_buffer[2] >> 8;		//B
+		back_buffer[k*3]	=	bright * rgb_buffer[0] >> 8;		//R
+		back_buffer[k*3+1]	=	bright * rgb_buffer[1] >> 8;		//G
+		back_buffer[k*3+2]	=	bright * rgb_buffer[2] >> 8;		//B
 			
-			hue2  += 40;
-			sine2 += rad_3;	// 0.3 rad
-		}
-		hue1   = (hue1 + 4) % 1536;
-		sine1 -= rad_03;		// 0.03 rad
-		if(sine1>=deg360)
-		sine1-=(UINT_FAST16_MAX-deg360);
-		frame_update();
+		hue2  += 40;
+		sine2 += rad_3;	// 0.3 rad
 	}
+	hue1   = (hue1 + 4) % 1536;
+	sine1 -= rad_03;		// 0.03 rad
+	if(sine1>=deg360)
+	sine1-=(UINT_FAST16_MAX-deg360);
+	frame_update();
 }
 
 static void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t rgb_buffer[])
@@ -242,17 +244,6 @@ static void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t rgb_buffer[])
 //////////////////////////////////////////////////////////////////////////
 /* LED Driver */
 
-volatile Bool update_frame = false;
-
-/* Start DMA Transfer */
-static void SPI_start(void)
-{
-	if (dma_channel_is_busy(DMA_CHANNEL_LED) || SPI_TIMER.CTRLA)
-		update_frame = true;
-	else
-		dma_channel_enable(DMA_CHANNEL_LED);
-}
-
 //Latch delay DMA (LED)
 void SPI_TIMER_OVF_int(void)
 {
@@ -271,7 +262,11 @@ void SPI_DMA_int(dma_callback_t state)
 		SetupDMA();
 	tc_restart(&SPI_TIMER);
 	tc_set_resolution(&SPI_TIMER,500000);
-	gamma_update=true;
+	if(update_gamma||(set.oversample&&set.gamma&&(set.mode&STATE_ON)))
+	{
+		update_frame=true;
+		gamma_map();
+	}
 }
 
 void rtc_fps(void)
@@ -339,7 +334,7 @@ void dma_init(void)
 	dma_enable();
 };
 
-void dma_update(void)
+void dma_update_count(void)
 {
 	dma_channel_set_repeats				(&dmach_conf_single, set.count);
 	dma_channel_set_transfer_count		(&dmach_conf_multi,  set.count*3);

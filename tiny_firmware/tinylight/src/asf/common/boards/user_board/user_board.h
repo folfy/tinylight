@@ -21,11 +21,12 @@
 //#define IR_avail				//IR-Receiver
 //#define RF_avail 1			//RF-Transceiver
 //#define RF_avail 2			//BT-Transceiver
+#define RF_avail 3				//Debug Output (remove RF module first!), 
 //#define UART_avail			//UART-Port
 
 #define SOFTWARE_REV			0x03
-#define RTC_FREQ				(32768/16)
 #define RTC_TIME				0.02					//20ms
+#define FPS_LIM					100						//FPS_Limit
 #define BUFFER_SIZE				160
 #define BOP_THERSHOLD			(4.0*310)				//4.0 Volt to prevent BOD
 
@@ -33,6 +34,8 @@
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
 #define ADC						ADCA
+#define ADC_EVCH				0
+#define ADC_EVCH_MUX			EVSYS_CH0MUX
 
 #ifndef BOARD_REV
 #error "BOARD_REV undefined"
@@ -82,7 +85,6 @@
 //////////////////////////////////////////////////////////////////////////
 /* RF Module */
 
-#ifdef	RF_avail
 #if		RF_avail==1
 #define RF_CE					IOPORT_CREATE_PIN(PORTC,0)
 #define RF_CSN					IOPORT_CREATE_PIN(PORTC,2)
@@ -90,27 +92,30 @@
 #define RF_MOSI					IOPORT_CREATE_PIN(PORTC,5)
 #define RF_MISO					IOPORT_CREATE_PIN(PORTC,6)
 #define RF_SCK					IOPORT_CREATE_PIN(PORTC,7)
-#endif
 
-#if		RF_avail==2
-<<<<<<< HEAD
-#define BT_DSR			IOPORT_CREATE_PIN(PORTC,0)
-#define BT_RST			IOPORT_CREATE_PIN(PORTC,2)
-#define BT_EN			IOPORT_CREATE_PIN(PORTC,4)
-#define BT_RST_UART		IOPORT_CREATE_PIN(PORTC,5)
-#define BT_RX			IOPORT_CREATE_PIN(PORTC,6)
-#define BT_TX			IOPORT_CREATE_PIN(PORTC,7)
-#define BT_USART		&USARTC1
-#define BT_USART_vect	USARTC1_RXC_vect
-=======
-#define BT_P3					IOPORT_CREATE_PIN(PORTC,0)
-#define BT_P4					IOPORT_CREATE_PIN(PORTC,2)
-#define BT_P8					IOPORT_CREATE_PIN(PORTC,4)
-#define BT_P6					IOPORT_CREATE_PIN(PORTC,5)
-#define BT_P7					IOPORT_CREATE_PIN(PORTC,6)
-#define BT_P5					IOPORT_CREATE_PIN(PORTC,7)
->>>>>>> dev
-#endif
+#elif	RF_avail==2
+#define BT_DSR					IOPORT_CREATE_PIN(PORTC,0)
+#define BT_RST					IOPORT_CREATE_PIN(PORTC,2)
+#define BT_EN					IOPORT_CREATE_PIN(PORTC,4)
+#define BT_RST_UART				IOPORT_CREATE_PIN(PORTC,5)
+#define BT_RX					IOPORT_CREATE_PIN(PORTC,6)
+#define BT_TX					IOPORT_CREATE_PIN(PORTC,7)
+#define BT_USART				&USARTC1
+#define BT_USART_vect			USARTC1_RXC_vect
+
+#elif	RF_avail==3
+#define set_P0					asm volatile ("sbi 0x11,0");
+#define	clr_P0					asm volatile ("cbi 0x11,0");
+#define set_P2					asm volatile ("sbi 0x11,2");
+#define	clr_P2					asm volatile ("cbi 0x11,2");
+#define set_P4					asm volatile ("sbi 0x11,4");
+#define	clr_P4					asm volatile ("cbi 0x11,4");
+#define set_P5					asm volatile ("sbi 0x11,5");
+#define	clr_P5					asm volatile ("cbi 0x11,5");
+#define set_P6					asm volatile ("sbi 0x11,6");
+#define	clr_P6					asm volatile ("cbi 0x11,6");
+#define set_P7					asm volatile ("sbi 0x11,7");
+#define	clr_P7					asm volatile ("cbi 0x11,7");
 #endif
 
 //////////////////////////////////////////////////////////////////////////

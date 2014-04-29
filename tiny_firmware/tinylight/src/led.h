@@ -12,12 +12,13 @@
 //////////////////////////////////////////////////////////////////////////
 /* LED Software */
 
+extern uint8_t back_buffer[];
 extern volatile uint_fast16_t FPS;
 
-void handle_led_refresh(void);
 void frame_update(void);
 void gamma_calc(void);
 
+void handle_auto_modes(void);
 void Mood_Lamp(void);
 void Rainbow(void);
 void Colorswirl(void);
@@ -33,7 +34,7 @@ void rtc_fps(void);
 /* DMA */
 
 void dma_init(void);
-void dma_update(void);
+void dma_update_count(void);
 void SetupDMA(void);
 
 #endif /* LED_H_ */

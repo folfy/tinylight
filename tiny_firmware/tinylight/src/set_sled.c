@@ -16,27 +16,6 @@ volatile Bool mode_select = false;
 
 settings set;
 
-#define EEMEM __attribute__((section(".eeprom")))
-settings set_preset EEMEM =
-{
-	/*set.mode			=*/ MODE_OFF,
-	/*set.mode_default	=*/	MODE_DEF_PREV_OFF,
-	/*set.timeout_mode	=*/	MODE_OFF,
-	/*set.timeout_time	=*/	TIMEOUT_VBUS,
-	/*set.oversample	=*/	OVERSAMPLE_X4,			//4x oversample
-	/*set.alpha			=*/ 0xFF,
-	/*set.default_alpha	=*/	0xFF,
-	/*set.gamma			=*/	2.2				*10,	//alpha=2.2
-	/*set.smooth_time	=*/	5				*2,		//time=5s
-	/*set.alpha_min		=*/	0,
-	/*set.lux_max		=*/	1000			/40,	//brightness=1000lux
-	/*set.stat_LED		=*/	50				*2.55,	//50%
-	/*set.stb_LED		=*/	5				*2.55,	//5%
-	/*set.count			=*/	80,
-	/*set.SCP			=*/	SCP_OFF,
-	/*set.UVP			=*/	UVP_OFF
-};
-
 static void button_update(Bool key_state);
 
 //////////////////////////////////////////////////////////////////////////
@@ -45,10 +24,26 @@ static void button_update(Bool key_state);
 void read_settings(void)
 {
 	nvm_eeprom_read_buffer(0, &set, sizeof(set));
+	if(set.default_mode==0xFF)						//Default settings if EEPROM is not programmed or erased by flip
+	{
+	set.default_mode	=	MODE_DEF_PREV_OFF;
+	set.timeout_mode	=	MODE_OFF;
+	set.timeout_time	=	TIMEOUT_VBUS;
+	set.default_alpha	=	0xFF;
+	set.oversample		=	OVERSAMPLE_X4;
+	set.gamma			=	2.2				*10;	//alpha=2.2
+	set.smooth_time		=	5				*2;		//time=5s
+	set.alpha_min		=	0;
+	set.lux_max			=	1000			/40;	//brightness=1000lux
+	set.sled_bright		=	30				*2.55;	//30%
+	set.sled_dim		=	5				*2.55;	//5%
+	set.count			=	80;
+	save_settings();
+	}
 	set.mode=MODE_OFF;
-	status_led_update();							//force sled update if new mode
+	sled_update();							//force sled update (no update if new mode = set.mode)
 	mode_update(set.default_mode&!STATE_PREV);
-
+	
 	set.alpha=set.default_alpha;
 };
 
@@ -73,23 +68,22 @@ void save_settings(void)
 
 Bool write_set(enum set_address_t address, uint8_t val)
 {
-	switch(address)//UNDONE: Write write_val functions
+	switch(address)
 	{
 		case SET_MODE:				mode_update(val);					break;
 		case SET_DEFAULT_MODE:		set.default_mode = val;				break;
 		case SET_TIMEOUT_MODE:		set.timeout_mode = val;				break;
 		case SET_TIMEOUT_TIME:		set.timeout_time = val;				break;
+		case SET_OVERSAMPLE:		write_oversample(val);				break;
 		case SET_ALPHA:				set.alpha = val;					break;
 		case SET_DEFAULT_ALPHA:		set.default_alpha = val;			break;
 		case SET_GAMMA:				write_gamma(val);					break;
 		case SET_SMOOTH_TIME:		set.smooth_time = val;				break;
 		case SET_ALPHA_MIN:			set.alpha_min = val;				break;
 		case SET_LUX_MAX:			set.lux_max = val;					break;
-		case SET_SLED_BRIGHT:		set.stat_LED = val;					break;
-		case SET_SLED_DIM:			set.stb_LED = val;					break;
+		case SET_SLED_BRIGHT:		write_sled_bright(val);				break;
+		case SET_SLED_DIM:			write_sled_dim(val);				break;
 		case SET_COUNT:				write_count(val);					break;
-		case SET_SCP:				write_scp(val);						break;
-		case SET_UVP:				write_uvp(val);						break;
 		default:					return false;
 	}
 	return true;
@@ -107,14 +101,6 @@ Bool read_set(uint8_t address, uint8_t *val)
 
 volatile enum mode_t prev_mode=MODE_MOODLAMP;
 
-//TODO: add error_reset function
-void mode_error_reset(void)
-{
-	protection_reset();
-	set.mode=MODE_OFF;
-	status_led_update();
-}
-
 void mode_set_prev(void)
 {
 	if(set.default_mode&STATE_PREV)
@@ -123,13 +109,13 @@ void mode_set_prev(void)
 		mode_update(set.default_mode);
 }
 
-Bool mode_update(uint_fast8_t mode)
+uint_fast8_t ada_mem[3];
+
+void mode_update(uint_fast8_t mode)
 {
-	if(set.mode&STATE_ERROR)
-		return false;
 	if(set.mode == mode)
-		return true;
-	prev_mode=set.mode;
+		return;
+	prev_mode = set.mode;
 	set.mode = mode;
 	if (set.mode&STATE_ON)
 	{
@@ -138,39 +124,66 @@ Bool mode_update(uint_fast8_t mode)
 	}
 	else
 		ioport_set_pin_level(MOSFET_en,LOW);
-	status_led_update();
-	return true;
+	if(prev_mode==MODE_USB_ADA)
+	{
+		write_gamma(ada_mem[0]);
+		write_count(ada_mem[1]);
+	}
+	else if(mode==MODE_USB_ADA)
+	{
+		ada_mem[0]=set.gamma;
+		ada_mem[1]=set.count;
+		write_gamma(GAMMA_OFF);
+	}
+	sled_update();
+}
+
+void write_oversample(uint_fast8_t oversamples)
+{
+	if(set.oversample==oversamples)
+		return;
+	set.oversample=oversamples;
+	if(set.gamma)
+		gamma_calc();
 }
 
 void write_gamma(uint_fast8_t gamma)
 {
+	if(set.gamma==gamma)
+		return;
 	set.gamma=gamma;
-	gamma_calc();
+	if(set.gamma)
+		gamma_calc();
+}
+
+void write_sled_bright(uint_fast8_t brightness)
+{
+	if(set.sled_bright==brightness)
+		return;
+	set.sled_bright=brightness;
+	sled_update();
+}
+
+void write_sled_dim(uint_fast8_t brightness)
+{
+	if(set.sled_dim==brightness)
+		return;
+	set.sled_dim=brightness;
+	sled_update();
 }
 
 void write_count(uint_fast8_t count)
 {
+	if(set.count==count)
+		return;
+	if(set.count>BUFFER_SIZE)
+		count=BUFFER_SIZE;
 	if(set.count!=count)
 	{
 		set.count=count;
-		dma_update();
+		dma_update_count();
 	}
 }
-
-void write_uvp(uint_fast8_t uvp_lim)
-{
-	set.uvp=uvp_lim;
-	uvp_scp_update();	
-}
-
-void write_scp(uint_fast8_t scp_lim)
-{
-	set.scp=scp_lim;
-	uvp_scp_update();	
-}
-
-
-//void write_UVP
 
 //////////////////////////////////////////////////////////////////////////
 /* Button */
@@ -178,19 +191,19 @@ void write_scp(uint_fast8_t scp_lim)
 void rtc_button(uint32_t time)
 {
 	const uint_fast16_t button_long = 0.25*RTC_FREQ;
-	const uint_fast16_t button_reset = 7*RTC_FREQ;
-	static uint_fast32_t button_time = 0;
-	static Bool button_mem = true;						//prevent writing button_time if button pressed on boot
+	const uint_fast16_t button_reset = 4*RTC_FREQ;
+	static uint_fast32_t button_time;
+	static Bool button_mem = true;
 	Bool button_state = ioport_get_pin_level(BUTTON);
 	if(button_state != button_mem)
 	{
 		if(button_state)
 			button_time=time;
-		else if(button_time)
+		else
 			button_update(time >= (button_time + button_long));
 		button_mem=button_state;
 	}
-	if(button_state & ( time > (button_time+button_reset) ))
+	if(button_state & ( time > (button_time+button_reset) ))	//HACK: Reset to Bootloader (firmware update)
 		wdt_reset_mcu();
 }
 
@@ -200,15 +213,13 @@ static void button_update(Bool key_state)
 		mode_set_prev();
 	else
 	{
-		if(key_state)
+		if(key_state)	//TODO: improve mode_select -  implement bright_adjust
 		{
 			//long
-			if(set.mode&STATE_ERROR)
-				mode_error_reset();
-			else if (set.mode != MODE_OFF)
+			if (set.mode != MODE_OFF)
 			{
 				mode_select ^= true;
-				status_led_update();
+				sled_update();
 			}
 		}
 		else
@@ -234,85 +245,73 @@ static void button_update(Bool key_state)
 //////////////////////////////////////////////////////////////////////////
 /* SLED */
 
-uint_fast8_t blink = 0; //TODO: make blink nicer
+uint_fast8_t blink = 0;
 
 const uint_fast8_t led_prescaler = 0.5/RTC_TIME+0.5;	//round
 volatile uint_fast8_t led_cycle;
 
-void status_led_update(void)
+static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue);
+
+void sled_update(void)
 {
 
 	if (mode_select)
-	{
-		tc_write_cc(&SLED_TIMER, SLED_TC_CC_R,set.stat_LED/2);
-		tc_write_cc(&SLED_TIMER, SLED_TC_CC_G,set.stat_LED/2);
-		tc_write_cc(&SLED_TIMER, SLED_TC_CC_B,set.stat_LED/3);
-		tc_enable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_R);
-		tc_enable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_G);
-		tc_enable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_B);
-	}
+		sled_set(set.sled_bright/2,set.sled_bright/2,set.sled_bright/3);
 	else
 	{
 		if(set.mode&STATE_ON)
 		{
 			blink=0;
-			if(set.stat_LED)
-			{
-				if(set.mode&STATE_USB)
-				{
-					tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
-					tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_G);
-					tc_enable_cc_channels( &SLED_TIMER,	SLED_TC_CCEN_B);
-					tc_write_cc(&SLED_TIMER, SLED_TC_CC_B, set.stat_LED);
-				}
-				else
-				{
-					tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
-					tc_enable_cc_channels( &SLED_TIMER,	SLED_TC_CCEN_G);
-					tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_B);
-					tc_write_cc(&SLED_TIMER, SLED_TC_CC_G, set.stat_LED);
-				}
-			}
+			if(set.mode&STATE_USB)
+				sled_set(0,0,set.sled_bright);
 			else
-				status_led_off();
+				sled_set(0,set.sled_bright,0);
 		}
 		else
 		{
-			if(set.mode&STATE_ERROR)
+			if(set.mode&STATE_ERROR)	//TODO: error handling (sled, blink,...)
 			{
 				blink=1;
 				led_cycle=led_prescaler;
-				tc_enable_cc_channels( &SLED_TIMER,	SLED_TC_CCEN_R);
-				tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_G);
-				tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_B);
-				tc_write_cc(&SLED_TIMER, SLED_TC_CC_R, 0xFF);
+				sled_set(255,0,0);
 			}
 			else
 			{
-				if(set.stb_LED)
-				{
-					blink=0;
-					tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
-					tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_G);
-					tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_B);
-					tc_write_cc(&SLED_TIMER, SLED_TC_CC_R, set.stb_LED);
-					tc_write_cc(&SLED_TIMER, SLED_TC_CC_G, set.stb_LED/4);
-				}
-				else
-					status_led_off();
+				blink=0;
+				sled_set(set.sled_dim,set.sled_dim/4,0);
 			}
 		}
 	}
 }
 
-void status_led_off(void)
+static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue)
 {
-	tc_disable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_R);
-	tc_disable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_G);
-	tc_disable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_B);
+	if(red)
+	{
+		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
+		tc_write_cc(&SLED_TIMER, SLED_TC_CC_R, red);
+	}
+	else
+		tc_disable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_R);
+	
+	if(green)
+	{
+		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_G);
+		tc_write_cc(&SLED_TIMER, SLED_TC_CC_G, green);		
+	}
+	else
+		tc_disable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_G);	
+	
+	if(blue)
+	{
+		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_B);
+		tc_write_cc(&SLED_TIMER, SLED_TC_CC_G, blue);
+	}
+	else
+		tc_disable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_B);
 }
 
-static void status_led_blink(void);
+static void sled_blink(void);
 
 void rtc_sled(void)
 {
@@ -320,13 +319,13 @@ void rtc_sled(void)
 	{
 		if(!--led_cycle)
 		{
-			status_led_blink();
+			sled_blink();
 			led_cycle=led_prescaler;
 		}
 	}
 }
 
-static void status_led_blink(void) //Error blinking
+static void sled_blink(void) //Error blinking
 {
 	if(blink==0x01)
 	{

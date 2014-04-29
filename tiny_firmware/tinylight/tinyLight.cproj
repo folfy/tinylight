@@ -146,8 +146,9 @@
     <OverrideVtor>false</OverrideVtor>
     <OverrideVtorValue>exception_table</OverrideVtorValue>
     <eraseonlaunchrule>0</eraseonlaunchrule>
-    <avrtool>com.atmel.avrdbg.tool.avrdragon</avrtool>
-    <avrtoolinterface>PDI</avrtoolinterface>
+    <avrtool>com.atmel.avrdbg.tool.simulator</avrtool>
+    <avrtoolinterface>
+    </avrtoolinterface>
     <com_atmel_avrdbg_tool_avrdragon>
       <ToolType>com.atmel.avrdbg.tool.avrdragon</ToolType>
       <ToolName>AVR Dragon</ToolName>
@@ -186,7 +187,8 @@
         <InterfaceProperties>
           <JtagEnableExtResetOnStartSession>false</JtagEnableExtResetOnStartSession>
         </InterfaceProperties>
-        <InterfaceName>PDI</InterfaceName>
+        <InterfaceName>
+        </InterfaceName>
       </ToolOptions>
     </com_atmel_avrdbg_tool_simulator>
     <preserveEEPROM>True</preserveEEPROM>
@@ -429,6 +431,12 @@
     <Compile Include="src\set_sled.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\tiny_protocol.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\tiny_protocol.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\usb.c">
       <SubType>compile</SubType>
     </Compile>
@@ -628,12 +636,6 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\mul16x16.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\tiny_protocol.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\tiny_protocol.h">
       <SubType>compile</SubType>
     </Compile>
     <None Include="src\asf\xmega\drivers\sleep\sleep.h">

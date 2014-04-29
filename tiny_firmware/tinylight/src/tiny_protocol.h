@@ -24,14 +24,14 @@ extern const uint8_t pre_ada[3+term];
 extern const uint8_t ack_ada[5+term];
 extern const uint8_t pre_BT[2+term];
 
+//NACK and ACK suppressed in ada_mode
 enum usb_response_t {
 	ACK						=	0,		//Ack new state 
 	NACK_PREAMPLE			=	100,	//state_idle:		preamble mismatch
 	NACK_COMMAND			=	101,	//state_command:	unknown command
 	NACK_RAW_MODE			=	102,	//state_raw:		not in correct usb mode
 	NACK_READ_ADD			=	103,	//state_set_read:	address unknown
-	NACK_WRITE_CRC			=	104,	//state_set_write:	address or data not matching
-	NACK_WRITE_ADD			=	105,	//state_set_write:	unknown address
+	NACK_WRITE_ADD			=	104,	//state_set_write:	unknown address
 	NACK_ADA_CRC			=	110,	//state_ada_header:	length crc mismatch
 	NACK_ADA_LENGTH			=	111,	//state_ada_header:	length too high
 	NACK_TIMEOUT			=	200,	//Internal value, if received -> fatal error
@@ -46,12 +46,12 @@ enum usb_response_t {
 	};
 
 enum usb_cmd_t {
-	CMD_TEST				=	0x00,
-	CMD_RAW_DATA			=	0x11,
-	CMD_MEASURE				=	0x22,
-	CMD_SET_READ			=	0x33,
-	CMD_SET_WRITE			=	0x44,
-	CMD_SET_SAVE			=	0x55
+	CMD_TEST				=	0,
+	CMD_RAW_DATA			=	11,
+	CMD_MEASURE				=	22,
+	CMD_SET_READ			=	33,
+	CMD_SET_WRITE			=	44,
+	CMD_SET_SAVE			=	55
 	};
 
 enum set_address_t {
@@ -69,8 +69,7 @@ enum set_address_t {
 	SET_SLED_BRIGHT			=	11,
 	SET_SLED_DIM			=	12,
 	SET_COUNT				=	13,
-	SET_UVP					=	14,
-	SET_SCP					=	15
+	SET_READ_ALL			=	0xFF
 	};
 	
 #define STATE_ON			0b10000000
@@ -86,11 +85,7 @@ enum mode_t {
 	MODE_USB_ADA				=	(	0x08	| STATE_ON					| STATE_USB	| STATE_MULTI	),
 	MODE_MOODLAMP				=	(	0x00	| STATE_ON												),
 	MODE_RAINBOW				=	(	0x01	| STATE_ON								| STATE_MULTI	),
-	MODE_COLORSWIRL				=	(	0x02	| STATE_ON								| STATE_MULTI	),
-	MODE_ERROR_BOP				=	(	0x00				| STATE_ERROR								),
-	MODE_ERROR_UVP				=	(	0x01				| STATE_ERROR								),
-	MODE_ERROR_SCP				=	(	0x04				| STATE_ERROR								),
-	MODE_ERROR_INTERNAL			=	(	0x0F				| STATE_ERROR								)
+	MODE_COLORSWIRL				=	(	0x02	| STATE_ON								| STATE_MULTI	)
 };
 
 enum mode_def_t {
@@ -103,10 +98,6 @@ enum mode_def_t {
 	MODE_DEF_PREV_COLORSWIRL	=	(	0x02	| STATE_ON	| STATE_PREV				| STATE_MULTI	)
 	};
 
-//timeout_time
-#define TIMEOUT_VBUS		0x00
-#define TIMEOUT_OFF			0xFF
-
 enum oversample_t {
 	OVERSAMPLE_OFF	=	0x00,
 	OVERSAMPLE_X2	=	0x01,
@@ -114,9 +105,9 @@ enum oversample_t {
 	OVERSAMPLE_X8	=	0x03
 	};
 
+#define TIMEOUT_VBUS		0x00
 #define ALPHA_AUTO			0x00
-#define	SCP_OFF				0x00
-#define UVP_OFF				0x00
+#define GAMMA_OFF			0x00
 
 typedef struct {
 	enum mode_t volatile	mode;
@@ -126,15 +117,13 @@ typedef struct {
 	enum oversample_t		oversample;
 	uint_fast8_t			alpha;
 	uint_fast8_t			default_alpha;
-	uint_fast8_t			gamma;	//TODO: add speed
+	uint_fast8_t			gamma;
 	uint_fast8_t			smooth_time;
 	uint_fast8_t			alpha_min;
 	uint_fast8_t			lux_max;
-	uint_fast8_t			stat_LED;
-	uint_fast8_t			stb_LED;
+	uint_fast8_t			sled_bright;
+	uint_fast8_t			sled_dim;
 	uint_fast8_t			count;
-	uint_fast8_t			uvp;
-	uint_fast8_t			scp;
 } settings;
 
 typedef struct {
