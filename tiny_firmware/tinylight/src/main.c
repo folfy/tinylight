@@ -71,7 +71,7 @@ int main (void)
 			
 		handle_usb();
 		handle_auto_modes();
-			
+		
 		//if((rtc_get_time()>=time+0.01*RTC_FREQ)&&set.mode!=MODE_OFF)
 		//UNDONE: implement new error handling 
 		//TODO: add rms calc -> main

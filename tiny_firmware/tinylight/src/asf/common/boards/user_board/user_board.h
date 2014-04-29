@@ -23,6 +23,7 @@
 //#define RF_avail 2			//BT-Transceiver
 #define RF_avail 3				//Debug Output (remove RF module first!), 
 //#define UART_avail			//UART-Port
+#define debug					//enables button reset to bootloader
 
 #define SOFTWARE_REV			0x03
 #define RTC_TIME				0.02					//20ms

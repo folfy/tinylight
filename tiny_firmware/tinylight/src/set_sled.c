@@ -12,8 +12,6 @@
 #include "misc_adc.h"
 #include "set_sled.h"
 
-volatile Bool mode_select = false;
-
 settings set;
 
 static void button_update(Bool key_state);
@@ -203,9 +201,13 @@ void rtc_button(uint32_t time)
 			button_update(time >= (button_time + button_long));
 		button_mem=button_state;
 	}
-	if(button_state & ( time > (button_time+button_reset) ))	//HACK: Reset to Bootloader (firmware update)
+	#ifdef debug
+	if(button_state & ( time > (button_time+button_reset) ))
 		wdt_reset_mcu();
+	#endif
 }
+
+volatile Bool mode_select = false;
 
 static void button_update(Bool key_state)
 {
