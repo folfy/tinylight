@@ -15,9 +15,7 @@ extern volatile adc_sample measure;
 
 void adc_init(void);
 
-void max_val_reset(void);
-uint_fast16_t get_min_voltage(void);
-uint_fast16_t get_max_current(void);
+void get_max_reset(uint_fast16_t *u_min, uint_fast16_t *i_max);
 
 /* Sleep */
 

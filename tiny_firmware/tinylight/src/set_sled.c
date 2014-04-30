@@ -33,8 +33,8 @@ void read_settings(void)
 	set.smooth_time		=	5				*2;		//time=5s
 	set.alpha_min		=	0;
 	set.lux_max			=	1000			/40;	//brightness=1000lux
-	set.sled_bright		=	30				*2.55;	//30%
-	set.sled_dim		=	5				*2.55;	//5%
+	set.sled_bright		=	8				*2.55;	//8%
+	set.sled_dim		=	2				*2.55;	//2%
 	set.count			=	80;
 	save_settings();
 	}
@@ -191,7 +191,7 @@ void rtc_button(uint32_t time)
 	const uint_fast16_t button_long = 0.25*RTC_FREQ;
 	const uint_fast16_t button_reset = 4*RTC_FREQ;
 	static uint_fast32_t button_time;
-	static Bool button_mem = true;
+	static Bool button_mem = false;
 	Bool button_state = ioport_get_pin_level(BUTTON);
 	if(button_state != button_mem)
 	{
@@ -258,7 +258,7 @@ void sled_update(void)
 {
 
 	if (mode_select)
-		sled_set(set.sled_bright/2,set.sled_bright/2,set.sled_bright/3);
+		sled_set(set.sled_bright/2,set.sled_bright/2,set.sled_bright/4);
 	else
 	{
 		if(set.mode&STATE_ON)
@@ -307,7 +307,7 @@ static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue)
 	if(blue)
 	{
 		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_B);
-		tc_write_cc(&SLED_TIMER, SLED_TC_CC_G, blue);
+		tc_write_cc(&SLED_TIMER, SLED_TC_CC_B, blue);
 	}
 	else
 		tc_disable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_B);

@@ -48,7 +48,7 @@
 #if		BOARD_REV == 0x10
 #define Sens_Light_en			IOPORT_CREATE_PIN(PORTA,3)
 #define Sens_Light				IOPORT_CREATE_PIN(PORTA,4)
-#define ADCCH_POS_PIN_Light		ADCCH_POS_PIN1
+#define ADCCH_POS_PIN_Light		ADCCH_POS_PIN4
 #elif	BOARD_REV == 0x01
 #define	Sens_Light				IOPORT_CREATE_PIN(PORTA,1)
 #endif

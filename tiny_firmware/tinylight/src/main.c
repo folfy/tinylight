@@ -66,7 +66,7 @@ int main (void)
 	{
 		if(set.mode==MODE_OFF)
 			power_down();
-
+		
 		#ifdef debug
 		uint32_t time=rtc_get_time();
 		#endif

@@ -57,7 +57,7 @@ enum usb_state_t {
 	USB_STATE_ADA_RAW		=	7
 };
 
-//TODO: make protocol handler
+//TODO: make protocol handler, semaphore
 enum usb_state_t usb_state=USB_STATE_IDLE;
 uint_fast8_t rx_lim=3;
 uint_fast16_t buffer_pos=0;
@@ -131,14 +131,14 @@ void handle_usb(void)
 																break;
 											case CMD_MEASURE:	ack_idle();
 																udi_cdc_write_buf((adc_sample*)&measure,sizeof(measure));
-																usb_buff[0]=FPS>>8;
-																usb_buff[1]=FPS;
-																uint_fast16_t tmp=get_min_voltage();
-																usb_buff[2]=tmp>>8;
-																usb_buff[3]=tmp;
-																tmp=get_max_current();
-																usb_buff[4]=tmp>>8;
-																usb_buff[5]=tmp;
+																usb_buff[0]=FPS;
+																usb_buff[1]=FPS>>8;
+																uint_fast16_t u_min, i_max;
+																get_max_reset(&u_min,&i_max);
+																usb_buff[2]=u_min;
+																usb_buff[3]=u_min>>8;
+																usb_buff[4]=i_max;
+																usb_buff[5]=i_max>>8;
 																udi_cdc_write_buf(usb_buff,6);
 																break;
 											case CMD_SET_READ:	usb_update(USB_STATE_SET_READ);

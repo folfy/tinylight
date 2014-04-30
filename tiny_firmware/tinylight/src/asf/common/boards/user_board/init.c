@@ -128,6 +128,9 @@ static void ADC_init(void)
 	
 	sysclk_enable_module(SYSCLK_PORT_GEN, SYSCLK_EVSYS);
 	ADC_EVCH_MUX=EVSYS_CHMUX_PRESCALER_16384_gc;	//ADC trigger:	EVSYS_CH0 -> (F_CPU / 16384: 1.95 kHz)
+	
+	ioport_set_pin_dir(Sens_Light_en,IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_HIGH);
 }
 
 

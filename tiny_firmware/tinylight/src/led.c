@@ -244,8 +244,11 @@ static void hsv_to_rgb(uint_fast16_t hue, uint_fast8_t rgb_buffer[])
 //////////////////////////////////////////////////////////////////////////
 /* LED Driver */
 
+static void SPI_TIMER_OVF_int(void);
+static void SPI_DMA_int(dma_callback_t state);
+
 //Latch delay DMA (LED)
-void SPI_TIMER_OVF_int(void)
+static void SPI_TIMER_OVF_int(void)
 {
 	SPI_TIMER.CTRLA = 0; //Stop Timer
 	if (update_frame)
@@ -256,7 +259,7 @@ void SPI_TIMER_OVF_int(void)
 	frame_count++;
 }
 
-void SPI_DMA_int(dma_callback_t state)
+static void SPI_DMA_int(dma_callback_t state)
 {
 	if(!(set.mode&STATE_MULTI))
 		SetupDMA();
