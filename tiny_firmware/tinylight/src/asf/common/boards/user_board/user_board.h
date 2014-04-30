@@ -34,6 +34,7 @@
 #define DMA_CHANNEL_LED			0
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
+#define IR_TIMER				TCC0
 #define ADC						ADCA
 #define ADC_EVCH				0
 #define ADC_EVCH_MUX			EVSYS_CH0MUX
