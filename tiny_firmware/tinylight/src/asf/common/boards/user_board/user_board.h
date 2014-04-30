@@ -18,10 +18,10 @@
 
 #define BOARD_REV 0x10			//rev 0x01 = debug_board
 /*	uncomment definition to enable additional hardware modules	*/
-//#define IR_avail				//IR-Receiver
+#define IR_avail				//IR-Receiver
 //#define RF_avail 1			//RF-Transceiver
 //#define RF_avail 2			//BT-Transceiver
-#define RF_avail 3				//Debug Output (remove RF module first!), 
+//#define RF_avail 3				//Debug Output (remove RF module first!), 
 //#define UART_avail			//UART-Port
 #define debug					//enables button reset to bootloader
 

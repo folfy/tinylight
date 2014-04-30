@@ -5,7 +5,7 @@
  *  Author: Martin
  */ 
 
-#ifdef IR_avail
+//#ifdef IR_avail
 
 #include <stdio.h>
 #include <asf.h>
@@ -125,7 +125,7 @@ ISR (PORTB_INT0_vect)
 
 void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat)
 {
-	uint_fast8_t new_mode = MODE_USB_SINGLE;
+	uint_fast8_t new_mode = MODE_SINGLE;
 	static uint_fast8_t last_cmd;
 	bool save = false;
 	bool change_mode = true;
@@ -178,7 +178,7 @@ void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat)
 		case IR_blue_minus_key:		if (back_buffer[2] > 0)		back_buffer[2]--;	break;
 		default: last_cmd = cmd;
 	}
-	if (set.mode == MODE_USB_SINGLE) frame_update();
+	if (set.mode == MODE_SINGLE) frame_update();
 };
 
 void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
@@ -194,6 +194,6 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 		nvm_eeprom_write_byte(addr+1,rgb_buffer[1]);
 		nvm_eeprom_write_byte(addr+2,rgb_buffer[2]);
 	}
-}
+};
 
-#endif
+//#endif

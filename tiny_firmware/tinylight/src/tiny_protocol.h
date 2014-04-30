@@ -85,17 +85,20 @@ enum mode_t {
 	MODE_USB_ADA				=	(	0x08	| STATE_ON					| STATE_USB	| STATE_MULTI	),
 	MODE_MOODLAMP				=	(	0x00	| STATE_ON												),
 	MODE_RAINBOW				=	(	0x01	| STATE_ON								| STATE_MULTI	),
-	MODE_COLORSWIRL				=	(	0x02	| STATE_ON								| STATE_MULTI	)
+	MODE_COLORSWIRL				=	(	0x02	| STATE_ON								| STATE_MULTI	),
+	MODE_SINGLE					=	(	0x03	| STATE_ON												)
 };
 
 enum mode_def_t {
 	MODE_DEF_MOODLAMP			=	(	0x00	| STATE_ON												),
 	MODE_DEF_RAINBOW			=	(	0x01	| STATE_ON								| STATE_MULTI	),
 	MODE_DEF_COLORSWIRL			=	(	0x02	| STATE_ON								| STATE_MULTI	),
+	MODE_DEF_SINGLE				=	(	0x03	| STATE_ON												),
 	MODE_DEF_PREV_OFF			=	(	0x00				| STATE_PREV								),
 	MODE_DEF_PREV_MOODLAMP		=	(	0x00	| STATE_ON	| STATE_PREV								),
 	MODE_DEF_PREV_RAINBOW		=	(	0x01	| STATE_ON	| STATE_PREV				| STATE_MULTI	),
-	MODE_DEF_PREV_COLORSWIRL	=	(	0x02	| STATE_ON	| STATE_PREV				| STATE_MULTI	)
+	MODE_DEF_PREV_COLORSWIRL	=	(	0x02	| STATE_ON	| STATE_PREV				| STATE_MULTI	),
+	MODE_DEF_PREV_SINGLE		=	(	0x03	| STATE_ON	| STATE_PREV								)
 	};
 
 enum oversample_t {
