@@ -105,7 +105,6 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 
 void power_down(void)
 {
-	set_P5;
 	adc_disable(&ADC);
 	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_LOW);
 	sysclk_set_prescalers(SYSCLK_PSADIV_2,SYSCLK_PSBCDIV_1_1);
@@ -114,5 +113,4 @@ void power_down(void)
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
 	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_HIGH);
 	adc_enable(&ADC);
-	clr_P5;
 }

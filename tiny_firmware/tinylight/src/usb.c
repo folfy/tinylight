@@ -26,7 +26,7 @@ static Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t
 ISR (Vbus_INT0_vect)
 {
 	if(ioport_get_pin_level(USB_VBUS))
-	udc_attach();
+		udc_attach();
 	else
 	{
 		udc_detach();
@@ -40,9 +40,11 @@ void usb_init()
 	udc_start();
 	if (!udc_include_vbus_monitoring())
 	{
+		PORTD_INTCTRL = 1;
 		if(ioport_get_pin_level(USB_VBUS))
 			udc_attach();
-		PORTD_INTCTRL = 1;
+		else
+			udc_detach();
 	}
 }
 
