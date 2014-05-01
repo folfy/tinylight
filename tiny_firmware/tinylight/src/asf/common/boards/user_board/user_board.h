@@ -16,7 +16,7 @@
 
 #include <conf_board.h>
 
-#define BOARD_REV 0x10			//rev 0x01 = debug_board
+#define BOARD_REV 0x10			//rev 0x01 = debug board
 /*	uncomment definition to enable additional hardware modules	*/
 //#define IR_avail				//IR-Receiver
 //#define RF_avail 1			//RF-Transceiver

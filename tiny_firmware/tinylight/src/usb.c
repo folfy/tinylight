@@ -202,7 +202,7 @@ void rtc_usb(uint32_t time)
 	if(set.timeout_time)
 	{
 		if((set.mode&STATE_USB)		&& (time>=(usb_rx_time+set.timeout_time*RTC_FREQ/10)))
-		mode_update(set.timeout_mode);
+			mode_update(set.timeout_mode);
 	}
 }
 

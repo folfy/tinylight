@@ -113,7 +113,8 @@ void mode_update(uint_fast8_t mode)
 {
 	if(set.mode == mode)
 		return;
-	prev_mode = set.mode;
+	if(!(set.mode&STATE_USB))
+		prev_mode = set.mode;
 	set.mode = mode;
 	if (set.mode&STATE_ON)
 	{
