@@ -5,7 +5,7 @@
  *  Author: Martin
  */ 
 
-//#ifdef IR_avail
+#ifdef IR_avail
 
 #include <stdio.h>
 #include <asf.h>
@@ -202,4 +202,4 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 	}
 };
 
-//#endif
+#endif
