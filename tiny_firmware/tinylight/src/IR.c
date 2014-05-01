@@ -5,7 +5,7 @@
  *  Author: Martin
  */ 
 
-#ifdef IR_avail
+//#ifdef IR_avail
 
 #include <stdio.h>
 #include <asf.h>
@@ -19,7 +19,7 @@ volatile uint8_t ir_state = 0;
 void TCC0_OVF_int(void)
 {
 	ir_state = 0;
-	tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+	tc_write_clock_source(&IR_TIMER,TC_CLKSEL_OFF_gc);
 };
 
 void IR_init(void)
@@ -29,10 +29,10 @@ void IR_init(void)
 	ioport_set_pin_dir(IR_en,IOPORT_DIR_OUTPUT);
 	ioport_set_pin_level(IR_en,HIGH);
 	ioport_set_pin_sense_mode(IR_in,IOPORT_SENSE_FALLING);
-	tc_enable(&TCC0);
-	tc_write_period(&TCC0,65534); //131ms @ 32MHz / 64
-	tc_set_overflow_interrupt_level(&TCC0, TC_INT_LVL_LO);
-	tc_set_overflow_interrupt_callback(&TCC0,TCC0_OVF_int);
+	tc_enable(&IR_TIMER);
+	tc_write_period(&IR_TIMER,65534); //131ms @ 32MHz / 64
+	tc_set_overflow_interrupt_level(&IR_TIMER, TC_INT_LVL_LO);
+	tc_set_overflow_interrupt_callback(&IR_TIMER,TCC0_OVF_int);
 	PORTB_INTCTRL = 1;
 	PORTB_INT0MASK = PIN2_bm;
 };
@@ -57,10 +57,10 @@ ISR (PORTB_INT0_vect)
 
 	static uint16_t ir_prev_time = 0;
 	
-	if (ir_state == 0) {tc_restart(&TCC0); tc_write_clock_source(&TCC0,TC_CLKSEL_DIV64_gc);}
+	if (ir_state == 0) {tc_restart(&IR_TIMER); tc_write_clock_source(&IR_TIMER,TC_CLKSEL_DIV64_gc);}
 	
-	volatile uint16_t ir_time = tc_read_count(&TCC0) - ir_prev_time;
-	ir_prev_time = tc_read_count(&TCC0);
+	volatile uint16_t ir_time = tc_read_count(&IR_TIMER) - ir_prev_time;
+	ir_prev_time = tc_read_count(&IR_TIMER);
 	
 	if (ir_state == 1) //Start Bit end
 	{
@@ -71,7 +71,7 @@ ISR (PORTB_INT0_vect)
 		else
 		{
 			ir_state = 0;
-			tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+			tc_write_clock_source(&IR_TIMER,TC_CLKSEL_OFF_gc);
 			return;
 		}
 	}
@@ -107,7 +107,7 @@ ISR (PORTB_INT0_vect)
 		else
 		{
 			ir_state = 0;
-			tc_write_clock_source(&TCC0,TC_CLKSEL_OFF_gc);
+			tc_write_clock_source(&IR_TIMER,TC_CLKSEL_OFF_gc);
 			return;
 		}
 	}
@@ -117,7 +117,7 @@ ISR (PORTB_INT0_vect)
 		{
 			handle_remote_key(addr, cmd, true);
 			ir_state-=2;
-			tc_restart(&TCC0);
+			tc_restart(&IR_TIMER);
 		}
 	}
 	ir_state++;
@@ -125,10 +125,9 @@ ISR (PORTB_INT0_vect)
 
 void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat)
 {
-	uint_fast8_t new_mode = MODE_USB_SINGLE;
 	static uint_fast8_t last_cmd;
 	bool save = false;
-	bool change_mode = true;
+	bool set_single_mode = true;
 	if (addr != IR_addr) {return;}
 	if(!repeat)
 	{
@@ -160,13 +159,20 @@ void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat)
 			case IR_pink_color_key:			change_color(18,&back_buffer[0], save); break;
 			case IR_skyblue_2_color_key:	change_color(19,&back_buffer[0], save); break;
 			
-			case IR_jump7_key:			new_mode = MODE_RAINBOW; break;
-			case IR_fade3_key:			new_mode = MODE_MOODLAMP; break;
-			case IR_fade7_key:			new_mode = MODE_COLORSWIRL; break;
-			case IR_off_key:			change_mode = false; if(set.mode==MODE_OFF) { mode_set_prev(); } else { mode_update(MODE_OFF);} break;
-			default: change_mode = false;
+			case IR_DIY1_key:				change_color(20,&back_buffer[0], save); break;
+			case IR_DIY2_key:				change_color(21,&back_buffer[0], save); break;
+			case IR_DIY3_key:				change_color(22,&back_buffer[0], save); break;
+			case IR_DIY4_key:				change_color(23,&back_buffer[0], save); break;
+			case IR_DIY5_key:				change_color(24,&back_buffer[0], save); break;
+			case IR_DIY6_key:				change_color(25,&back_buffer[0], save); break;
+			
+			case IR_jump7_key:				mode_update(MODE_RAINBOW); break;
+			case IR_fade3_key:				mode_update(MODE_MOODLAMP); break;
+			case IR_fade7_key:				mode_update(MODE_COLORSWIRL); break;
+			case IR_off_key:				set_single_mode = false; if(set.mode==MODE_OFF) { mode_set_prev(); } else { mode_update(MODE_OFF);} break;
+			default:						set_single_mode = false;
 		}
-		if (change_mode) mode_update(new_mode);
+		if (set_single_mode) mode_update(MODE_SINGLE);
 	}
 	switch(cmd)
 	{
@@ -178,7 +184,7 @@ void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat)
 		case IR_blue_minus_key:		if (back_buffer[2] > 0)		back_buffer[2]--;	break;
 		default: last_cmd = cmd;
 	}
-	if (set.mode == MODE_USB_SINGLE) frame_update();
+	if (set.mode == MODE_SINGLE)	frame_update();
 };
 
 void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
@@ -194,6 +200,6 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 		nvm_eeprom_write_byte(addr+1,rgb_buffer[1]);
 		nvm_eeprom_write_byte(addr+2,rgb_buffer[2]);
 	}
-}
+};
 
-#endif
+//#endif

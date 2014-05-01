@@ -29,7 +29,6 @@ void BT_init(void)
 		.paritytype = USART_PMODE_DISABLED_gc,
 		.stopbits = false
 	};
-	sysclk_enable_module(SYSCLK_PORT_C, PR_USART1_bm);
 	usart_init_rs232(BT_USART, &USART_SERIAL_OPTIONS);
 	usart_set_rx_interrupt_level(BT_USART, USART_INT_LVL_LO);
 };

@@ -71,12 +71,12 @@ void TCC0_OVF_int(void);
 void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat);
 void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[],bool save);
 
-#define TCC0_cycle 32000000/64
-#define nec_start_max 0.015*TCC0_cycle
-#define nec_start_min 0.012*TCC0_cycle
-#define nec_repeat_max 0.012*TCC0_cycle
-#define nec_one_max 0.003*TCC0_cycle
-#define nec_zero_max 0.002*TCC0_cycle
+#define TC_cycle 32000000/64
+#define nec_start_max 0.015*TC_cycle
+#define nec_start_min 0.012*TC_cycle
+#define nec_repeat_max 0.012*TC_cycle
+#define nec_one_max 0.003*TC_cycle
+#define nec_zero_max 0.002*TC_cycle
 
 #define IR_addr 0
 #define IR_colors_EE_offset 64

@@ -32,7 +32,7 @@
 #include "misc_adc.h"
 
 #ifdef IR_avail
-#include "IR.h"
+	#include "IR.h"
 #endif
 
 #if	RF_avail==2
@@ -56,10 +56,10 @@ int main (void)
 	usb_init();
 	
 	#ifdef IR_avail
-	IR_init();
+		IR_init();
 	#endif
 	#if	RF_avail==2
-	BT_init();
+		BT_init();
 	#endif
 	
 	while(1)
