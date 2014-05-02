@@ -5,7 +5,6 @@
  *  Author: Martin
  */ 
 
-//#ifdef IR_avail
 
 #include <stdio.h>
 #include <asf.h>
@@ -13,6 +12,9 @@
 #include "IR.h"
 #include "led.h"
 #include "set_sled.h"
+#include "misc_adc.h"
+
+#ifdef IR_avail
 
 volatile uint8_t ir_state = 0;
 
@@ -20,6 +22,7 @@ void TCC0_OVF_int(void)
 {
 	ir_state = 0;
 	tc_write_clock_source(&IR_TIMER,TC_CLKSEL_OFF_gc);
+	if (sleeping) sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV_SLEEP,CONFIG_SYSCLK_PSBCDIV_SLEEP);
 };
 
 void IR_init(void)
@@ -46,10 +49,7 @@ uint_fast8_t get_ir_bit(uint_fast16_t time)
 
 ISR (PORTB_INT0_vect)
 {
-	//if (sleeping)
-	//{
-		sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
-	//}
+	if (sleeping) {	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV); }
 	static uint_fast8_t addr = 0;
 	static uint_fast8_t addr_not = 0;
 	static uint_fast8_t cmd = 0;
@@ -72,6 +72,7 @@ ISR (PORTB_INT0_vect)
 		{
 			ir_state = 0;
 			tc_write_clock_source(&IR_TIMER,TC_CLKSEL_OFF_gc);
+			if (sleeping) sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV_SLEEP,CONFIG_SYSCLK_PSBCDIV_SLEEP);
 			return;
 		}
 	}
@@ -108,6 +109,7 @@ ISR (PORTB_INT0_vect)
 		{
 			ir_state = 0;
 			tc_write_clock_source(&IR_TIMER,TC_CLKSEL_OFF_gc);
+			if (sleeping) sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV_SLEEP,CONFIG_SYSCLK_PSBCDIV_SLEEP);
 			return;
 		}
 	}
@@ -176,12 +178,14 @@ void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat)
 	}
 	switch(cmd)
 	{
-		case IR_red_plus_key:		if (back_buffer[0] < 255)	back_buffer[0]++;	break;
-		case IR_red_minus_key:		if (back_buffer[0] > 0)		back_buffer[0]--;	break;
-		case IR_green_plus_key:		if (back_buffer[1] < 255)	back_buffer[1]++;	break;
-		case IR_green_minus_key:	if (back_buffer[1] > 0)		back_buffer[1]--;	break;
-		case IR_blue_plus_key:		if (back_buffer[2] < 255)	back_buffer[2]++;	break;
-		case IR_blue_minus_key:		if (back_buffer[2] > 0)		back_buffer[2]--;	break;
+		case IR_red_plus_key:			if (back_buffer[0] < 255)	back_buffer[0]++;	break;
+		case IR_red_minus_key:			if (back_buffer[0] > 0)		back_buffer[0]--;	break;
+		case IR_green_plus_key:			if (back_buffer[1] < 255)	back_buffer[1]++;	break;
+		case IR_green_minus_key:		if (back_buffer[1] > 0)		back_buffer[1]--;	break;
+		case IR_blue_plus_key:			if (back_buffer[2] < 255)	back_buffer[2]++;	break;
+		case IR_blue_minus_key:			if (back_buffer[2] > 0)		back_buffer[2]--;	break;
+		case IR_brightness_plus_key:	if (set.alpha < 255)		set.alpha++;		break;
+		case IR_brightness_minus_key:	if (set.alpha > 0)			set.alpha--;		break;
 		default: last_cmd = cmd;
 	}
 	if (set.mode == MODE_SINGLE)	frame_update();
@@ -202,4 +206,4 @@ void change_color(uint_fast8_t id, uint_fast8_t rgb_buffer[], bool save)
 	}
 };
 
-//#endif
+#endif

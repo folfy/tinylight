@@ -21,7 +21,6 @@ void get_max_reset(uint_fast16_t *u_min, uint_fast16_t *i_max);
 
 void power_down(void);
 
-
-
+extern Bool volatile sleeping;
 
 #endif /* MISC_ADC_H_ */

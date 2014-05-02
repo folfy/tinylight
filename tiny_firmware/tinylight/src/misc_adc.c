@@ -103,14 +103,18 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 //////////////////////////////////////////////////////////////////////////
 /* Sleep */
 
+Bool volatile sleeping = false;
+
 void power_down(void)
 {
+	sleeping = true;
 	adc_disable(&ADC);
 	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_LOW);
-	sysclk_set_prescalers(SYSCLK_PSADIV_2,SYSCLK_PSBCDIV_1_1);
+	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV_SLEEP,CONFIG_SYSCLK_PSBCDIV_SLEEP);
 	while((set.mode==MODE_OFF)&&!udi_cdc_is_rx_ready())
 		sleepmgr_enter_sleep();		
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
 	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_HIGH);
 	adc_enable(&ADC);
+	sleeping = false;
 }
