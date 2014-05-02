@@ -596,13 +596,13 @@ W = angled&lt;p&gt;
 </net>
 <net name="N$7" class="0">
 <segment>
-<pinref part="BT1" gate="G$1" pin="PIO9"/>
-<wire x1="64.77" y1="6.35" x2="64.77" y2="11.43" width="0.1524" layer="91"/>
-<wire x1="64.77" y1="11.43" x2="62.23" y2="11.43" width="0.1524" layer="91"/>
 <pinref part="SV1" gate="G$1" pin="4"/>
 <wire x1="-5.08" y1="17.78" x2="-11.43" y2="17.78" width="0.1524" layer="91"/>
-<wire x1="-11.43" y1="17.78" x2="-11.43" y2="6.35" width="0.1524" layer="91"/>
-<wire x1="-11.43" y1="6.35" x2="64.77" y2="6.35" width="0.1524" layer="91"/>
+<wire x1="-11.43" y1="17.78" x2="-11.43" y2="12.7" width="0.1524" layer="91"/>
+<wire x1="-11.43" y1="12.7" x2="19.05" y2="12.7" width="0.1524" layer="91"/>
+<wire x1="19.05" y1="12.7" x2="19.05" y2="16.51" width="0.1524" layer="91"/>
+<pinref part="BT1" gate="G$1" pin="PIO7"/>
+<wire x1="19.05" y1="16.51" x2="21.59" y2="16.51" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
