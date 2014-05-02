@@ -73,20 +73,20 @@ void frame_update(void)
 	}
 }
 
+uint_fast8_t run=0;
+
 static void gamma_map(void)
 {
 	if(set.gamma)
 	{
-		static uint_fast8_t run=0;
 		for(uint_fast16_t n=0;n<set.count*3;n++)
 		{
 			uint_fast8_t val=back_buffer[n];
 			val=(val*set.alpha)>>8;				//TODO: Test alpha, implement auto_alpha
 			front_buffer[n]=gamma_lut[val];
 			if(gamma_ms[val]>run)				//oversample pwm for increased resolution
-			front_buffer[n]++;
+				front_buffer[n]++;
 		}
-		run=(run+1)&ms_mask;
 	}
 	else
 	{
@@ -269,6 +269,7 @@ static void SPI_DMA_int(dma_callback_t state)
 	{
 		update_frame=true;
 		gamma_map();
+		run=(run+1)&ms_mask;
 	}
 }
 

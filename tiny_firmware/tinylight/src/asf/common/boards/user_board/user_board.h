@@ -18,10 +18,10 @@
 
 #define BOARD_REV 0x10			//rev 0x01 = debug board
 /*	uncomment definition to enable additional hardware modules	*/
-#define IR_avail				//IR-Receiver
+//#define IR_avail				//IR-Receiver
 //#define RF_avail 1			//RF-Transceiver
 //#define RF_avail 2			//BT-Transceiver
-//#define RF_avail 3				//Debug Output (remove RF module first!), 
+//#define RF_avail 3			//Debug Output (remove RF module first!), 
 //#define UART_avail			//UART-Port
 #define debug					//enables button reset to bootloader
 
@@ -34,7 +34,9 @@
 #define DMA_CHANNEL_LED			0
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
+#ifdef IR_avail
 #define IR_TIMER				TCC0
+#endif
 #define ADC						ADCA
 #define ADC_EVCH				0
 #define ADC_EVCH_MUX			EVSYS_CH0MUX

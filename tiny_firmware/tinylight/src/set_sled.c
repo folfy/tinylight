@@ -111,30 +111,31 @@ uint_fast8_t ada_mem[3];
 
 void mode_update(uint_fast8_t mode)
 {
-	if(set.mode == mode)
-		return;
-	if(!(set.mode&STATE_USB))
-		prev_mode = set.mode;
-	set.mode = mode;
-	if (set.mode&STATE_ON)
+	if(set.mode != mode)
 	{
-		ioport_set_pin_level(MOSFET_en,HIGH);
-		SetupDMA();
+		if (mode&STATE_ON)
+		{
+			ioport_set_pin_level(MOSFET_en,HIGH);
+			SetupDMA();
+		}
+		else
+			ioport_set_pin_level(MOSFET_en,LOW);
+		if(set.mode==MODE_USB_ADA)
+		{
+			write_gamma(ada_mem[0]);
+			write_count(ada_mem[1]);
+		}
+		else if(mode==MODE_USB_ADA)
+		{
+			ada_mem[0]=set.gamma;
+			ada_mem[1]=set.count;
+			write_gamma(GAMMA_OFF);
+		}
+		if(!(set.mode&STATE_USB))
+			prev_mode = set.mode;
+		set.mode = mode;
+		sled_update();		
 	}
-	else
-		ioport_set_pin_level(MOSFET_en,LOW);
-	if(prev_mode==MODE_USB_ADA)
-	{
-		write_gamma(ada_mem[0]);
-		write_count(ada_mem[1]);
-	}
-	else if(mode==MODE_USB_ADA)
-	{
-		ada_mem[0]=set.gamma;
-		ada_mem[1]=set.count;
-		write_gamma(GAMMA_OFF);
-	}
-	sled_update();
 }
 
 void write_oversample(uint_fast8_t oversamples)

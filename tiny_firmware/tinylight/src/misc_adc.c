@@ -91,7 +91,10 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 			else
 				measure.current = 0;
 			adc_mean.current=0;
-			measure.light		= MulU16X16toH16(adc_mean.light>>mshift,	l_scale13b);
+			if(measure.light>0)
+				measure.light	= MulU16X16toH16(adc_mean.light>>mshift,	l_scale13b);
+			else
+				measure.light	= 0;
 			adc_mean.light=0;
 			measure.temp		= MulU16X16toH16(adc_mean.temp>>mshift,		t_scale13b) - 2730;
 			adc_mean.temp=0;

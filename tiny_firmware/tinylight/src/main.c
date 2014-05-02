@@ -95,7 +95,10 @@ static void RTC_Alarm(uint32_t time)
 	if(time > (UINT32_MAX-RTC_FREQ*3600*24))	//prevent rtc overflow if there are less than 24h remaining
 	{
 		if( !(set.mode&STATE_ON) || (time >= (UINT32_MAX-alarm_cycle)) )	// delay as long as required or possible
-			reset_do_soft_reset();	// TODO: Review RTC_Overflow
+		{
+			save_settings();
+			reset_do_soft_reset();	// TODO: RTC_Overflow - timeshift
+		}
 	}
 	rtc_set_alarm(alarm_prev+=alarm_cycle);
 }

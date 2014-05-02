@@ -5,14 +5,14 @@
  *  Author: Martin
  */ 
 
-#ifdef IR_avail
-
 #include <stdio.h>
 #include <asf.h>
 #include "tiny_protocol.h"
 #include "IR.h"
 #include "led.h"
 #include "set_sled.h"
+
+#ifdef IR_avail
 
 volatile uint8_t ir_state = 0;
 

@@ -69,7 +69,7 @@ enum set_address_t {
 	SET_SLED_BRIGHT			=	11,
 	SET_SLED_DIM			=	12,
 	SET_COUNT				=	13,
-	SET_READ_ALL			=	0xFF
+	SET_READ_ALL			=	255
 	};
 	
 #define STATE_ON			0b10000000
@@ -130,10 +130,10 @@ typedef struct {
 } settings;
 
 typedef struct {
-	uint_fast16_t voltage;	//Versorgungsspannung der LED-Stripes in mV
-	int_fast16_t  current;	//Storm der LED-Stripes in mV
-	uint_fast16_t light;	//Umgebungshelligkeit in lux
-	uint_fast16_t temp;		//Temperatur in 1/10 °C
+	uint_fast16_t	voltage;	//Versorgungsspannung der LED-Stripes in mV
+	int_fast16_t	current;	//Storm der LED-Stripes in mV
+	int_fast16_t	light;		//Umgebungshelligkeit in lux
+	uint_fast16_t	temp;		//Temperatur in 1/10 °C
 } adc_sample;
 
 #endif /* TINY_PROTOCOL_H_ */
