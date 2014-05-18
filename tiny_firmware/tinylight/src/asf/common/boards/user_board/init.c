@@ -78,17 +78,17 @@ static void led_init(void)
 {
 	static usart_spi_options_t USART_SPI_OPTIONS = {
 		.spimode	= USART_CMODE_MSPI_gc,
-		.baudrate	= 1000000,		//1Mhz Clock
-		.data_order	= 0				//SPI Mode 0
+		.baudrate	= 1000000,					//1Mhz Clock
+		.data_order	= 0							//SPI Mode 0
 	};
-	usart_init_spi_pull_up(&USARTC0,&USART_SPI_OPTIONS);
+	usart_init_spi_pull_up(&LED_UART,&USART_SPI_OPTIONS);
 	ioport_set_pin_mode(LED_TX, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
 	ioport_set_pin_dir(LED_TX,IOPORT_DIR_OUTPUT);
 	
 	/* Init SPI latch delay timer */
 	tc_enable(&SPI_TIMER);
 	tc_set_overflow_interrupt_level(&SPI_TIMER,TC_INT_LVL_MED);
-	tc_write_period(&SPI_TIMER,500);
+	tc_write_period(&SPI_TIMER,1000/2);
 }
 
 /* Init ADC controller */
@@ -118,7 +118,7 @@ static void ADC_init(void)
 	adcch_write_configuration(&ADC,ADC_CH1,&adcch_conf);
 	
 	/* environment brightness */
-	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Light,ADCCH_NEG_PAD_GND,0);	//Gain 1/2
+	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Light,ADCCH_NEG_PAD_GND,1);
 	adcch_write_configuration(&ADC,ADC_CH2,&adcch_conf);
 	
 	/* Internal temp */

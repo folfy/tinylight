@@ -19,17 +19,22 @@
 #define BOARD_REV 0x10			//rev 0x01 = debug board
 /*	uncomment definition to enable additional hardware modules	*/
 //#define IR_avail				//IR-Receiver
-//#define RF_avail 1			//RF-Transceiver
-//#define RF_avail 2			//BT-Transceiver
-//#define RF_avail 3			//Debug Output (remove RF module first!), 
+#define RF_avail 1  			//RF-Transceiver
+//#define RF_avail 2  			//BT-Transceiver
+//#define RF_avail 3  			//Debug Output (remove RF module first!), 
 //#define UART_avail			//UART-Port
-#define debug					//enables button reset to bootloader
+#define DEBUG					//enables reset to bootloader via button
 
 #define SOFTWARE_REV			0x03
-#define RTC_TIME				0.02					//20ms
-#define FPS_LIM					100						//FPS_Limit
+#define RTC_TIME				0.02	//20ms
 #define BUFFER_SIZE				160
-#define BOP_THERSHOLD			(4.0*310)				//4.0 Volt to prevent BOD
+
+//////////////////////////////////////////////////////////////////////////
+/* Internal Hardware */
+
+#ifndef BOARD_REV
+#error "BOARD_REV undefined"
+#endif
 
 #define DMA_CHANNEL_LED			0
 #define SLED_TIMER				TCD0
@@ -40,10 +45,6 @@
 #define ADC						ADCA
 #define ADC_EVCH				0
 #define ADC_EVCH_MUX			EVSYS_CH0MUX
-
-#ifndef BOARD_REV
-#error "BOARD_REV undefined"
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 /* Sens_Light */
@@ -83,6 +84,7 @@
 #define	LED_CLK					IOPORT_CREATE_PIN(PORTC,1)
 #define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
 
+#define LED_UART				USARTC0
 #define LED_UART_DATA			USARTC0_DATA
 #define LED_UART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTC0_DRE_gc
 
@@ -108,18 +110,18 @@
 #define BT_USART_vect			USARTC1_RXC_vect
 
 #elif	RF_avail==3
-#define set_P0					asm volatile ("sbi 0x11,0");
-#define	clr_P0					asm volatile ("cbi 0x11,0");
-#define set_P2					asm volatile ("sbi 0x11,2");
-#define	clr_P2					asm volatile ("cbi 0x11,2");
-#define set_P4					asm volatile ("sbi 0x11,4");
-#define	clr_P4					asm volatile ("cbi 0x11,4");
-#define set_P5					asm volatile ("sbi 0x11,5");
-#define	clr_P5					asm volatile ("cbi 0x11,5");
-#define set_P6					asm volatile ("sbi 0x11,6");
-#define	clr_P6					asm volatile ("cbi 0x11,6");
-#define set_P7					asm volatile ("sbi 0x11,7");
-#define	clr_P7					asm volatile ("cbi 0x11,7");
+#define set_P3					asm volatile ("sbi 0x11,0");
+#define	clr_P3					asm volatile ("cbi 0x11,0");
+#define set_P4					asm volatile ("sbi 0x11,2");
+#define	clr_P4					asm volatile ("cbi 0x11,2");
+#define set_P8					asm volatile ("sbi 0x11,4");
+#define	clr_P8					asm volatile ("cbi 0x11,4");
+#define set_P6					asm volatile ("sbi 0x11,5");
+#define	clr_P6					asm volatile ("cbi 0x11,5");
+#define set_P7					asm volatile ("sbi 0x11,6");
+#define	clr_P7					asm volatile ("cbi 0x11,6");
+#define set_P5					asm volatile ("sbi 0x11,7");
+#define	clr_P5					asm volatile ("cbi 0x11,7");
 #endif
 
 //////////////////////////////////////////////////////////////////////////

@@ -91,8 +91,8 @@ static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result)
 			else
 				measure.current = 0;
 			adc_mean.current=0;
-			if(measure.light>0)
-				measure.light	= MulU16X16toH16(adc_mean.light>>mshift,	l_scale13b);
+			if(adc_mean.light>0)
+				measure.light	= MulU16X16toH16(adc_mean.light>>mshift,	l_scale13b); //TODO: Add light calibration
 			else
 				measure.light	= 0;
 			adc_mean.light=0;

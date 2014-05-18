@@ -28,6 +28,7 @@ void write_gamma(uint_fast8_t gamma);
 void write_sled_bright(uint_fast8_t brightness);
 void write_sled_dim(uint_fast8_t brightness);
 void write_count(uint_fast8_t count);
+void write_fps_lim(uint_fast8_t fps);
 
 /* Button */
 void rtc_button(uint32_t time);
