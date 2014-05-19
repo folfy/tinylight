@@ -71,8 +71,9 @@
 /* IR, Sens_Uin */
 
 #ifdef IR_avail
-#define IR_en					IOPORT_CREATE_PIN(PORTB,1)
-#define IR_in					IOPORT_CREATE_PIN(PORTB,2)
+#define IR_en					IOPORT_CREATE_PIN(PORTB,2)
+#define IR_in					IOPORT_CREATE_PIN(PORTB,1)
+#define IR_in_int				PIN1_bm
 #endif
 
 #define Sens_Uin				IOPORT_CREATE_PIN(PORTB,3)
