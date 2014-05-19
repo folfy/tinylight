@@ -37,7 +37,7 @@ void IR_init(void)
 	tc_set_overflow_interrupt_level(&IR_TIMER, TC_INT_LVL_LO);
 	tc_set_overflow_interrupt_callback(&IR_TIMER,TCC0_OVF_int);
 	PORTB_INTCTRL = 1;
-	PORTB_INT0MASK = PIN2_bm;
+	PORTB_INT0MASK = IR_in_int;
 };
 
 uint_fast8_t get_ir_bit(uint_fast16_t time)
@@ -168,9 +168,9 @@ void handle_remote_key(uint_fast8_t addr, enum ir_key_t cmd, bool repeat)
 			case IR_DIY5_key:				change_color(24,&back_buffer[0], save); break;
 			case IR_DIY6_key:				change_color(25,&back_buffer[0], save); break;
 			
-			case IR_jump7_key:				mode_update(MODE_RAINBOW); break;
-			case IR_fade3_key:				mode_update(MODE_MOODLAMP); break;
-			case IR_fade7_key:				mode_update(MODE_COLORSWIRL); break;
+			case IR_jump7_key:				set_single_mode = false; mode_update(MODE_RAINBOW); break;
+			case IR_fade3_key:				set_single_mode = false; mode_update(MODE_MOODLAMP); break;
+			case IR_fade7_key:				set_single_mode = false; mode_update(MODE_COLORSWIRL); break;
 			case IR_off_key:				set_single_mode = false; if(set.mode==MODE_OFF) { mode_set_prev(); } else { mode_update(MODE_OFF);} break;
 			default:						set_single_mode = false;
 		}

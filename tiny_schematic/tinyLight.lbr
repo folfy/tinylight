@@ -1005,11 +1005,21 @@ Philips Semiconductors,  sot457-(sc-74)-reflow-wave.pdf</description>
 <gate name="G$1" symbol="P_REG" x="0" y="0"/>
 </gates>
 <devices>
-<device name="" package="SOT223">
+<device name="1" package="SOT223">
 <connects>
 <connect gate="G$1" pin="GND" pad="1"/>
 <connect gate="G$1" pin="VIN" pad="3"/>
 <connect gate="G$1" pin="VOUT" pad="2 T" route="any"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="R" package="SOT223">
+<connects>
+<connect gate="G$1" pin="GND" pad="1"/>
+<connect gate="G$1" pin="VIN" pad="2 T"/>
+<connect gate="G$1" pin="VOUT" pad="3"/>
 </connects>
 <technologies>
 <technology name=""/>
