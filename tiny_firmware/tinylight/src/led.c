@@ -73,20 +73,20 @@ void frame_update(void)
 	}
 }
 
+uint_fast8_t run=0;
+
 static void gamma_map(void)
 {
 	if(set.gamma)
 	{
-		static uint_fast8_t run=0;
 		for(uint_fast16_t n=0;n<set.count*3;n++)
 		{
 			uint_fast8_t val=back_buffer[n];
-			val=(val*set.alpha)>>8;				//TODO: Test alpha, implement auto_alpha
+			val=(val*set.alpha)>>8;				//TODO: implement auto_alpha
 			front_buffer[n]=gamma_lut[val];
 			if(gamma_ms[val]>run)				//oversample pwm for increased resolution
-			front_buffer[n]++;
+				front_buffer[n]++;
 		}
-		run=(run+1)&ms_mask;
 	}
 	else
 	{
@@ -98,7 +98,7 @@ static void gamma_map(void)
 void gamma_calc(void)
 {
 	//split gamma in full exponentiations and 10th roots
-	uint_fast8_t gamma_dec=set.gamma;
+	uint_fast8_t gamma_dec=set.gamma>>1;
 	uint_fast8_t gamma_pot=0;
 	while(gamma_dec>=10)
 	{
@@ -133,12 +133,14 @@ void gamma_calc(void)
 	}
 }
 
+uint_fast16_t frame_time;
+
 void handle_auto_modes(void)
 {
 	static uint_fast32_t time1=0;
 	if(rtc_get_time()>=time1)
 	{
-		time1=rtc_get_time()+0.010*RTC_FREQ;
+		time1=rtc_get_time()+frame_time;
 		switch (set.mode)
 		{
 			case MODE_MOODLAMP:		Mood_Lamp();	break;
@@ -149,6 +151,10 @@ void handle_auto_modes(void)
 	}
 }
 
+void fps_lim_update(void)
+{
+	frame_time=RTC_FREQ/set.fps_lim;
+}
 
 static uint_fast16_t hue1 = 0;
 
@@ -187,7 +193,7 @@ void Colorswirl(void)
 		uint_fast8_t bright;
 		hsv_to_rgb(hue2, rgb_buffer);
 		if(sine2 >= deg360)
-		sine2-= deg360;
+			sine2-= deg360;
 		bright = linsin_360(sine2)+127;
 			
 		back_buffer[k*3]	=	bright * rgb_buffer[0] >> 8;		//R
@@ -200,7 +206,7 @@ void Colorswirl(void)
 	hue1   = (hue1 + 4) % 1536;
 	sine1 -= rad_03;		// 0.03 rad
 	if(sine1>=deg360)
-	sine1-=(UINT_FAST16_MAX-deg360);
+		sine1-=(UINT_FAST16_MAX-deg360);
 	frame_update();
 }
 
@@ -250,7 +256,7 @@ static void SPI_DMA_int(dma_callback_t state);
 //Latch delay DMA (LED)
 static void SPI_TIMER_OVF_int(void)
 {
-	SPI_TIMER.CTRLA = 0; //Stop Timer
+	tc_write_clock_source(&SPI_TIMER,TC_CLKSEL_OFF_gc);
 	if (update_frame)
 	{
 		dma_channel_enable(DMA_CHANNEL_LED);
@@ -264,11 +270,12 @@ static void SPI_DMA_int(dma_callback_t state)
 	if(!(set.mode&STATE_MULTI))
 		SetupDMA();
 	tc_restart(&SPI_TIMER);
-	tc_set_resolution(&SPI_TIMER,500000);
+	tc_write_clock_source(&SPI_TIMER,TC_CLKSEL_DIV64_gc);
 	if(update_gamma||(set.oversample&&set.gamma&&(set.mode&STATE_ON)))
 	{
 		update_frame=true;
 		gamma_map();
+		run=(run+1)&ms_mask;
 	}
 }
 

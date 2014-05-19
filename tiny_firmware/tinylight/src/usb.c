@@ -92,6 +92,7 @@ void handle_usb(void)
 											if(!usb_buff[0] && (usb_buff[1]<=BUFFER_SIZE))
 											{
 												mode_update(MODE_USB_ADA);
+												write_gamma(GAMMA_OFF);
 												write_count(usb_buff[1]);
 												usb_update(USB_STATE_ADA_RAW);
 											}
@@ -121,12 +122,12 @@ void handle_usb(void)
 											case CMD_RAW_DATA:	if(set.mode==MODE_USB_SINGLE)
 																{
 																	udi_cdc_putc(ACK);
-																	mode_update(USB_STATE_RAW_SINGLE);
+																	usb_update(USB_STATE_RAW_SINGLE);
 																}
 																else if(set.mode==MODE_USB_MULTI)
 																{
 																	udi_cdc_putc(ACK);
-																	mode_update(USB_STATE_RAW_MULTI);
+																	usb_update(USB_STATE_RAW_MULTI);
 																}
 																else
 																	nack_flush(NACK_RAW_MODE);
@@ -202,7 +203,10 @@ void rtc_usb(uint32_t time)
 	if(set.timeout_time)
 	{
 		if((set.mode&STATE_USB)		&& (time>=(usb_rx_time+set.timeout_time*RTC_FREQ/10)))
+		{
+			nack_flush(NACK_TIMEOUT);
 			mode_update(set.timeout_mode);
+		}
 	}
 }
 

@@ -29,19 +29,21 @@ void read_settings(void)
 	set.timeout_time	=	TIMEOUT_VBUS;
 	set.default_alpha	=	0xFF;
 	set.oversample		=	OVERSAMPLE_X4;
-	set.gamma			=	2.2				*10;	//alpha=2.2
+	set.gamma			=	2.20			*20;	//alpha=2.2
 	set.smooth_time		=	5				*2;		//time=5s
 	set.alpha_min		=	0;
 	set.lux_max			=	1000			/40;	//brightness=1000lux
 	set.sled_bright		=	8				*2.55;	//8%
 	set.sled_dim		=	2				*2.55;	//2%
 	set.count			=	80;
+	set.fps_lim			=	60;
 	save_settings();
 	}
 	set.mode=MODE_OFF;
 	sled_update();							//force sled update (no update if new mode = set.mode)
 	mode_update(set.default_mode&!STATE_PREV);
-	
+	gamma_calc();
+	fps_lim_update();
 	set.alpha=set.default_alpha;
 };
 
@@ -82,6 +84,8 @@ Bool write_set(enum set_address_t address, uint8_t val)
 		case SET_SLED_BRIGHT:		write_sled_bright(val);				break;
 		case SET_SLED_DIM:			write_sled_dim(val);				break;
 		case SET_COUNT:				write_count(val);					break;
+		case SET_FPS_LIM:			write_fps_lim(val);					break;
+		case 15: usart_spi_set_baudrate(&LED_UART,val*20000,sysclk_get_per_hz()); break;
 		default:					return false;
 	}
 	return true;
@@ -113,18 +117,21 @@ void mode_update(uint_fast8_t mode)
 {
 	if(set.mode == mode)
 		return;
-	if(!(set.mode&STATE_USB))
+	if(!(set.mode&STATE_USB)&&(set.mode!=MODE_OFF))
 		prev_mode = set.mode;
+		
 	set.mode = mode;
-	if (set.mode&STATE_ON)
+	if (mode&STATE_ON)
 	{
 		ioport_set_pin_level(MOSFET_en,HIGH);
 		SetupDMA();
 	}
 	else
 		ioport_set_pin_level(MOSFET_en,LOW);
+	sled_update();	
+	
 	if(prev_mode==MODE_USB_ADA)
-	{
+	{	//BUG: Ada save
 		write_gamma(ada_mem[0]);
 		write_count(ada_mem[1]);
 	}
@@ -132,9 +139,7 @@ void mode_update(uint_fast8_t mode)
 	{
 		ada_mem[0]=set.gamma;
 		ada_mem[1]=set.count;
-		write_gamma(GAMMA_OFF);
 	}
-	sled_update();
 }
 
 void write_oversample(uint_fast8_t oversamples)
@@ -151,7 +156,7 @@ void write_gamma(uint_fast8_t gamma)
 	if(set.gamma==gamma)
 		return;
 	set.gamma=gamma;
-	if(set.gamma)
+	if(gamma)
 		gamma_calc();
 }
 
@@ -184,6 +189,16 @@ void write_count(uint_fast8_t count)
 	}
 }
 
+void write_fps_lim(uint_fast8_t fps)
+{
+	if(set.fps_lim==fps)
+	return;
+	if(!fps)
+	fps=1;
+	set.fps_lim=fps;
+	fps_lim_update();
+}
+
 //////////////////////////////////////////////////////////////////////////
 /* Button */
 
@@ -202,7 +217,7 @@ void rtc_button(uint32_t time)
 			button_update(time >= (button_time + button_long));
 		button_mem=button_state;
 	}
-	#ifdef debug
+	#ifdef DEBUG
 	if(button_state & ( time > (button_time+button_reset) ))
 		wdt_reset_mcu();
 	#endif
@@ -272,7 +287,7 @@ void sled_update(void)
 		}
 		else
 		{
-			if(set.mode&STATE_ERROR)	//TODO: error handling (sled, blink,...)
+			if(set.mode&STATE_RES)	//TODO: error handling (sled, blink,...)
 			{
 				blink=1;
 				led_cycle=led_prescaler;

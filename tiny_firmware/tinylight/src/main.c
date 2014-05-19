@@ -44,14 +44,12 @@ static void RTC_Alarm(uint32_t time);
 
 int main (void)
 {
-
 	board_init();
 	read_settings();
 	dma_init();
 	rtc_set_callback(RTC_Alarm);
 	rtc_set_alarm_relative(0);
 	adc_init();
-	gamma_calc();
 	cpu_irq_enable();
 	usb_init();
 	
@@ -67,14 +65,14 @@ int main (void)
 		if(set.mode==MODE_OFF)
 			power_down();
 		
-		#ifdef debug
+		#ifdef DEBUG
 		uint32_t time=rtc_get_time();
 		#endif
 			
 		handle_usb();
 		handle_auto_modes();
 		
-		#ifdef debug
+		#ifdef DEBUG
 		if((rtc_get_time()>=time+0.01*RTC_FREQ)&&set.mode!=MODE_OFF)
 		;//UNDONE: implement new error handling 
 		#endif
@@ -95,7 +93,10 @@ static void RTC_Alarm(uint32_t time)
 	if(time > (UINT32_MAX-RTC_FREQ*3600*24))	//prevent rtc overflow if there are less than 24h remaining
 	{
 		if( !(set.mode&STATE_ON) || (time >= (UINT32_MAX-alarm_cycle)) )	// delay as long as required or possible
-			reset_do_soft_reset();	// TODO: Review RTC_Overflow
+		{
+			save_settings();
+			reset_do_soft_reset();	// TODO: RTC_Overflow - time shift
+		}
 	}
 	rtc_set_alarm(alarm_prev+=alarm_cycle);
 }

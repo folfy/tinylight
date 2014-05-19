@@ -19,6 +19,7 @@ void frame_update(void);
 void gamma_calc(void);
 
 void handle_auto_modes(void);
+void fps_lim_update(void);
 void Mood_Lamp(void);
 void Rainbow(void);
 void Colorswirl(void);
