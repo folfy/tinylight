@@ -18,9 +18,9 @@
 
 #define BOARD_REV 0x10			//rev 0x01 = debug board
 /*	uncomment definition to enable additional hardware modules	*/
-//#define IR_avail				//IR-Receiver
-#define RF_avail 1  			//RF-Transceiver
-//#define RF_avail 2  			//BT-Transceiver
+#define IR_avail				//IR-Receiver
+//#define RF_avail 1  			//RF-Transceiver
+#define RF_avail 2  			//BT-Transceiver
 //#define RF_avail 3  			//Debug Output (remove RF module first!), 
 //#define UART_avail			//UART-Port
 #define DEBUG					//enables reset to bootloader via button
@@ -101,14 +101,13 @@
 #define RF_SCK					IOPORT_CREATE_PIN(PORTC,7)
 
 #elif	RF_avail==2
-#define BT_DSR					IOPORT_CREATE_PIN(PORTC,0)
-#define BT_RST					IOPORT_CREATE_PIN(PORTC,2)
-#define BT_EN					IOPORT_CREATE_PIN(PORTC,4)
-#define BT_RST_UART				IOPORT_CREATE_PIN(PORTC,5)
+#define BT_EN					IOPORT_CREATE_PIN(PORTC,0)
 #define BT_RX					IOPORT_CREATE_PIN(PORTC,6)
 #define BT_TX					IOPORT_CREATE_PIN(PORTC,7)
+#define BT_RX_BUFFER_SIZE		32
 #define BT_USART				&USARTC1
-#define BT_USART_vect			USARTC1_RXC_vect
+#define BT_USART_INT_LVL		USART_INT_LVL_LO
+#define BT_USART_RX_vect		USARTC1_RXC_vect
 
 #elif	RF_avail==3
 #define set_P3					asm volatile ("sbi 0x11,0");

@@ -93,7 +93,7 @@ void handle_usb(void)
 											{
 												mode_update(MODE_USB_ADA);
 												write_gamma(GAMMA_OFF);
-												write_count(usb_buff[1]);
+												write_count(usb_buff[1] + 1);   //TODO: Check set.count
 												usb_update(USB_STATE_ADA_RAW);
 											}
 											else
