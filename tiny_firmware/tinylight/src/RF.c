@@ -11,7 +11,7 @@
 #include "led.h"
 #include "set_sled.h"
 #include "misc_adc.h"
-#include "usb.h"
+#include "rf.h"
 
 
 static void ack_idle(void);
@@ -20,11 +20,13 @@ static void usb_update(uint_fast8_t state);
 static Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t length);
 
 //////////////////////////////////////////////////////////////////////////
-/* USB */
+/* RF - NRF24 IC */
 
-//VBus detection
-ISR (Vbus_INT_vect)
+// new data int
+ISR (RF_INT_vect)
 {
+	usart_spi_init(&RF_USART);
+	usart_spi_setup_device(&RF_USART,)
 	if(ioport_get_pin_level(USB_VBUS))
 		udc_attach();
 	else
@@ -35,20 +37,25 @@ ISR (Vbus_INT_vect)
 	}
 }
 
-void usb_init()
-{	
-	udc_start();
-	if (!udc_include_vbus_monitoring())
-	{
-		PORTD_INTCTRL = 1;
-		if(ioport_get_pin_level(USB_VBUS))
-			udc_attach();
-		else
-			udc_detach();
-	}
+// init RF USART
+static void rf_init(void)
+{
+	ioport_set_pin_sense_mode(RF_IRQ,IOPORT_SENSE_RISING);
+	RF_INTMSK = RF_Pin_bm;
+	
+	ioport_set_pin_dir(RF_CE,	IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(RF_MOSI,	IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(RF_SCK,	IOPORT_DIR_OUTPUT);
+	
+	struct spi_device spi_device_conf = {
+	.id = RF_CSN
+	};
+	usart_spi_init(&RF_USART);
+	usart_spi_setup_device(&RF_USART, &spi_device, SPI_MODE_0, 1000000, 0);
+	
 }
 
-enum usb_state_t {
+enum rf_state_t {
 	USB_STATE_IDLE			=	0,
 	USB_STATE_CMD			=	1,
 	USB_STATE_RAW_SINGLE	=	2,
@@ -93,7 +100,7 @@ void handle_usb(void)
 											{
 												mode_update(MODE_USB_ADA);
 												write_gamma(GAMMA_OFF);
-												write_count(usb_buff[1] + 1);
+												write_count(usb_buff[1] + 1);   //TODO: Check set.count
 												usb_update(USB_STATE_ADA_RAW);
 											}
 											else

@@ -85,7 +85,6 @@ Bool write_set(enum set_address_t address, uint8_t val)
 		case SET_SLED_DIM:			write_sled_dim(val);				break;
 		case SET_COUNT:				write_count(val);					break;
 		case SET_FPS_LIM:			write_fps_lim(val);					break;
-		case 15: usart_spi_set_baudrate(&LED_UART,val*20000,sysclk_get_per_hz()); break;
 		default:					return false;
 	}
 	return true;

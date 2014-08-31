@@ -50,7 +50,7 @@ static void Vbus_init(void)
 	ioport_set_pin_dir(USB_VBUS,IOPORT_DIR_INPUT);
 	ioport_set_pin_mode(USB_VBUS,IOPORT_MODE_TOTEM);
 	ioport_set_pin_sense_mode(USB_VBUS,IOPORT_SENSE_BOTHEDGES);
-	VBus_INT0MSK = VBus_Pin_bm;
+	VBus_INTMSK = VBus_Pin_bm;
 }
 
 /* Init status LED */
@@ -81,7 +81,7 @@ static void led_init(void)
 		.baudrate	= 1000000,					//1Mhz Clock
 		.data_order	= 0							//SPI Mode 0
 	};
-	usart_init_spi_pull_up(&LED_UART,&USART_SPI_OPTIONS);
+	usart_init_spi_pull_up(&LED_USART,&USART_SPI_OPTIONS);
 	ioport_set_pin_mode(LED_TX, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
 	ioport_set_pin_dir(LED_TX,IOPORT_DIR_OUTPUT);
 	
