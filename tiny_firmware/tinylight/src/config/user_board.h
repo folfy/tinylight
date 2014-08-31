@@ -91,9 +91,17 @@
 #define RF_CE					IOPORT_CREATE_PIN(PORTC,0)
 #define RF_CSN					IOPORT_CREATE_PIN(PORTC,2)
 #define RF_IRQ					IOPORT_CREATE_PIN(PORTC,4)
+#define RF_INT_vect				PORTC_INT0_vect
+#define RF_INTMSK				PORTC_INT0MASK
+#define RF_Pin_bm				PIN4_bm
 #define RF_MOSI					IOPORT_CREATE_PIN(PORTC,5)
 #define RF_MISO					IOPORT_CREATE_PIN(PORTC,6)
 #define RF_SCK					IOPORT_CREATE_PIN(PORTC,7)
+#define RF_USART				USARTC1
+#define RF_USART_INT_LVL		USART_INT_LVL_LO
+#define RF_USART_RXC_vect		USARTC1_RXC_vect
+#define RF_USART_DRE_vect		USARTC1_DRE_vect
+#define RF_USART_TXC_vect		USARTC1_TXC_vect
 
 #elif	RF_avail==2
 #define BT_EN					IOPORT_CREATE_PIN(PORTC,0)
