@@ -28,11 +28,11 @@ void Colorswirl(void);
 /* LED Driver */
 
 void rtc_fps(void);
+void led_init(void);
 
 //////////////////////////////////////////////////////////////////////////
 /* DMA */
 
-void dma_init(void);
 void dma_update_count(void);
 void SetupDMA(void);
 

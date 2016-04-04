@@ -34,6 +34,7 @@ void write_fps_lim(uint_fast8_t fps);
 void rtc_button(uint32_t time);
 
 /* SLED */
+void sled_init(void);
 void sled_update(void);
 void status_led_off(void);
 void rtc_sled(void);

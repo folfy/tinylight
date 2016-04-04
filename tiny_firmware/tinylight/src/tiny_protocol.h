@@ -36,7 +36,7 @@ enum usb_cmd_t {
 	CMD_SET_READ			=	33,		//Parameter: <set_address_t>; Returns: Ack, address, value
 	CMD_SET_WRITE			=	44,		//Parameter: <set_address_t>, <new value>; Returns: Ack, address, new value
 	CMD_SET_SAVE			=	55		//Returns: Ack; Stores settings in EEPROM
-	};
+};
 
 enum set_address_t {
 	SET_MODE				=	0,		//<mode_t>		- not validated!
@@ -50,12 +50,13 @@ enum set_address_t {
 	SET_SMOOTH_TIME			=	8,
 	SET_ALPHA_MIN			=	9,
 	SET_LUX_MAX				=	10,
-	SET_SLED_BRIGHT			=	11,		//Status LED brightness (On): 0 ... 100% (.39%)
+	SET_SLED_BRIGHT			=	11,		//Status LED brightness (On):      0 ... 100% (.39%)
 	SET_SLED_DIM			=	12,		//Status LED brightness (Standby): 0 ... 100% (.39%)
 	SET_COUNT				=	13,		//Number of LEDs (max: BUFFER_SIZE)
 	SET_FPS_LIM				=	14,		//Limit framerate in auto mode (reduces flicker when oversampling)
+	SET_DEBUG				=   254,    //Reserved for debugging purposes
 	SET_READ_ALL			=	255		//Return all settings from 0 to sizeof(settings)
-	};
+};
 
 /* mode description
  *
@@ -74,7 +75,8 @@ enum set_address_t {
 #define STATE_PREV			STATE_RES	// reuse reserved state bit for default mode = previous mode
 
 enum mode_t {
-	MODE_OFF					=	(	0x00															),	//UID: 0x00	(0)
+	MODE_SLEEP					=	(	0x00															),	//UID: 0x00	(  0)
+	MODE_OFF                    =   (   0x01                                                            ),  //UID: 0x01 (  1)
 	MODE_USB_SINGLE				=	(	0x00	| STATE_ON					| STATE_USB					),	//UID: 0xA0 (160)
 	MODE_USB_MULTI				=	(	0x01	| STATE_ON					| STATE_USB	| STATE_MULTI	),	//UID: 0xB1 (177)
 	MODE_USB_ADA				=	(	0x08	| STATE_ON					| STATE_USB	| STATE_MULTI	),	//UID: 0xB8 (184)
@@ -85,23 +87,23 @@ enum mode_t {
 };
 
 enum mode_def_t {
-	MODE_DEF_MOODLAMP			=	(	0x00	| STATE_ON												),	//UID: 0x00	(0)
+	MODE_DEF_MOODLAMP			=	(	0x00	| STATE_ON												),	//UID: 0x00	(  0)
 	MODE_DEF_RAINBOW			=	(	0x01	| STATE_ON								| STATE_MULTI	),	//UID: 0xA0 (160)
 	MODE_DEF_COLORSWIRL			=	(	0x02	| STATE_ON								| STATE_MULTI	),	//UID: 0xB1 (177)
 	MODE_DEF_SINGLE				=	(	0x03	| STATE_ON												),	//UID: 0xB8 (184)
-	MODE_DEF_PREV_OFF			=	(	0x00				| STATE_PREV								),	//UID: 0x40 (64)
+	MODE_DEF_PREV_OFF			=	(	0x00				| STATE_PREV								),	//UID: 0x40 ( 64)
 	MODE_DEF_PREV_MOODLAMP		=	(	0x00	| STATE_ON	| STATE_PREV								),	//UID: 0xC0 (192)
 	MODE_DEF_PREV_RAINBOW		=	(	0x01	| STATE_ON	| STATE_PREV				| STATE_MULTI	),	//UID: 0xD1 (209)
 	MODE_DEF_PREV_COLORSWIRL	=	(	0x02	| STATE_ON	| STATE_PREV				| STATE_MULTI	),	//UID: 0xD2 (210)
 	MODE_DEF_PREV_SINGLE		=	(	0x03	| STATE_ON	| STATE_PREV								)	//UID: 0xC3 (195)
-	};
+};
 
 enum oversample_t {
 	OVERSAMPLE_OFF	=	0x00,	//Off
 	OVERSAMPLE_X2	=	0x01,	//2xMS
 	OVERSAMPLE_X4	=	0x02,	//4xMS
 	OVERSAMPLE_X8	=	0x03	//8xMS
-	};
+};
 
 #define TIMEOUT_VBUS		0x00
 #define ALPHA_AUTO			0x00

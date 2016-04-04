@@ -9,7 +9,7 @@
 #ifndef USB_H_
 #define USB_H_
 
-
+void Vbus_init(void);
 
 void usb_init(void);
 void rtc_usb(uint32_t time);

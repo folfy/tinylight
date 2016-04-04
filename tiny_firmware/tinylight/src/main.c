@@ -21,6 +21,8 @@
  *
  *	TCD0:	PWM Status Led
  *	TCD1:	DMA-Wait
+ *
+ *  EVCH0:  ADC
  */
 
 #include <stdio.h>
@@ -30,10 +32,7 @@
 #include "usb.h"
 #include "set_sled.h"
 #include "misc_adc.h"
-
-#ifdef IR_avail
-	#include "IR.h"
-#endif
+#include "IR.h"
 
 #if	RF_avail==2
 	#include "BT.h"
@@ -44,27 +43,44 @@ static void RTC_Alarm(uint32_t time);
 
 int main (void)
 {
-	board_init();
+	#if RF_avail==3
+	PORTCFG_VPCTRLA=PORTCFG_VP02MAP_PORTC_gc;
+	VPORT0_DIR|=PIN0_bm|PIN2_bm|PIN4_bm|PIN5_bm|PIN6_bm|PIN7_bm;
+	#endif
+	/* Init clocks*/
+	sysclk_init();
+	
+	/* Initialize the sleep manager */
+	sleepmgr_init();
+	
+	/* Init mosfet_io */
+	ioport_init();
+	ioport_set_pin_dir(MOSFET_en, IOPORT_DIR_OUTPUT);
+
+	sled_init();	// Init status LED
+	Vbus_init();	// Init VBus detection
+	led_init();		// Init LED strip USART as SPI Master and led latch delay timer
+	ioport_set_pin_mode(BUTTON,IOPORT_MODE_PULLUP|IOPORT_MODE_INVERT_PIN);	// Init button IO
+	rtc_init();		// Init RTC
+	pmic_init();	// Init interrupt controller
+	
 	read_settings();
-	dma_init();
 	rtc_set_callback(RTC_Alarm);
 	rtc_set_alarm_relative(0);
 	adc_init();
 	cpu_irq_enable();
 	usb_init();
-	
-	#ifdef IR_avail
-		IR_init();
-	#endif
+
+	IR_init();
 	#if	RF_avail==2
 		BT_init();
 	#endif
 	
 	while(1)
 	{
-		if(set.mode==MODE_OFF)
+		if(set.mode==MODE_SLEEP)
 			power_down();
-		
+			
 		#ifdef DEBUG
 		uint32_t time=rtc_get_time();
 		#endif
@@ -73,7 +89,7 @@ int main (void)
 		handle_auto_modes();
 		
 		#ifdef DEBUG
-		if((rtc_get_time()>=time+0.01*RTC_FREQ)&&set.mode!=MODE_OFF)
+		if((rtc_get_time()>=time+0.01*RTC_FREQ)&&set.mode!=MODE_SLEEP)
 		;//UNDONE: implement new error handling 
 		#endif
 		//TODO: add rms calc -> main

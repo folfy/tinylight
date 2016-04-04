@@ -24,8 +24,8 @@ void read_settings(void)
 	nvm_eeprom_read_buffer(0, &set, sizeof(set));
 	if(set.default_mode==0xFF)						//Default settings if EEPROM is not programmed or erased by flip
 	{
-	set.default_mode	=	MODE_DEF_PREV_OFF;
-	set.timeout_mode	=	MODE_OFF;
+	set.default_mode	=	MODE_DEF_PREV_SLEEP;
+	set.timeout_mode	=	MODE_SLEEP;
 	set.timeout_time	=	TIMEOUT_VBUS;
 	set.default_alpha	=	0xFF;
 	set.oversample		=	OVERSAMPLE_X4;
@@ -39,13 +39,13 @@ void read_settings(void)
 	set.fps_lim			=	60;
 	save_settings();
 	}
-	set.mode=MODE_OFF;
+	set.mode=MODE_SLEEP;
 	sled_update();							//force sled update (no update if new mode = set.mode)
 	mode_update(set.default_mode&!STATE_PREV);
 	gamma_calc();
 	fps_lim_update();
 	set.alpha=set.default_alpha;
-};
+}
 
 void save_settings(void)
 {
@@ -117,7 +117,7 @@ void mode_update(uint_fast8_t mode)
 {
 	if(set.mode == mode)
 		return;
-	if(!(set.mode&STATE_USB)&&(set.mode!=MODE_OFF))
+	if((set.mode&STATE_ON)&&!(set.mode&STATE_USB))
 		prev_mode = set.mode;
 		
 	set.mode = mode;

@@ -61,8 +61,7 @@
 #define  USB_DEVICE_MAJOR_VERSION         1
 #define  USB_DEVICE_MINOR_VERSION         0
 #define  USB_DEVICE_POWER                 100 // Consumption on Vbus line (mA)
-#define  USB_DEVICE_ATTR                  \
-	(USB_CONFIG_ATTR_SELF_POWERED)
+#define  USB_DEVICE_ATTR                  (USB_CONFIG_ATTR_BUS_POWERED)
 // (USB_CONFIG_ATTR_BUS_POWERED)
 //	(USB_CONFIG_ATTR_REMOTE_WAKEUP|USB_CONFIG_ATTR_SELF_POWERED)
 //	(USB_CONFIG_ATTR_REMOTE_WAKEUP|USB_CONFIG_ATTR_BUS_POWERED)
@@ -150,7 +149,7 @@
 #define  UDI_CDC_LOW_RATE
 
 //! Default configuration of communication port
-#define  UDI_CDC_DEFAULT_RATE             115200
+#define  UDI_CDC_DEFAULT_RATE             230400
 #define  UDI_CDC_DEFAULT_STOPBITS         CDC_STOP_BITS_1
 #define  UDI_CDC_DEFAULT_PARITY           CDC_PAR_NONE
 #define  UDI_CDC_DEFAULT_DATABITS         8

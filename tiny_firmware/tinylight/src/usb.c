@@ -22,8 +22,17 @@ static Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t
 //////////////////////////////////////////////////////////////////////////
 /* USB */
 
+/* Init VBus detection io */
+void Vbus_init(void)
+{
+	ioport_set_pin_dir(USB_VBUS,IOPORT_DIR_INPUT);
+	ioport_set_pin_mode(USB_VBUS,IOPORT_MODE_TOTEM);
+	ioport_set_pin_sense_mode(USB_VBUS,IOPORT_SENSE_BOTHEDGES);
+	VBus_INTMSK = VBus_Pin_bm;
+}
+
 //VBus detection
-ISR (Vbus_INT0_vect)
+ISR (Vbus_INT_vect)
 {
 	if(ioport_get_pin_level(USB_VBUS))
 		udc_attach();
@@ -92,8 +101,7 @@ void handle_usb(void)
 											if(!usb_buff[0] && (usb_buff[1]<=BUFFER_SIZE))
 											{
 												mode_update(MODE_USB_ADA);
-												write_gamma(GAMMA_OFF);
-												write_count(usb_buff[1] + 1);   //TODO: Check set.count
+												write_count(usb_buff[1] + 1);
 												usb_update(USB_STATE_ADA_RAW);
 											}
 											else
