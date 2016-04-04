@@ -85,7 +85,7 @@ Bool write_set(enum set_address_t address, uint8_t val)
 		case SET_SLED_DIM:			write_sled_dim(val);				break;
 		case SET_COUNT:				write_count(val);					break;
 		case SET_FPS_LIM:			write_fps_lim(val);					break;
-		case 15: usart_spi_set_baudrate(&LED_UART,val*20000,sysclk_get_per_hz()); break;
+		case SET_DEBUG:													break;
 		default:					return false;
 	}
 	return true;
@@ -111,8 +111,6 @@ void mode_set_prev(void)
 		mode_update(set.default_mode);
 }
 
-uint_fast8_t ada_mem[3];
-
 void mode_update(uint_fast8_t mode)
 {
 	if(set.mode == mode)
@@ -129,17 +127,6 @@ void mode_update(uint_fast8_t mode)
 	else
 		ioport_set_pin_level(MOSFET_en,LOW);
 	sled_update();	
-	
-	if(prev_mode==MODE_USB_ADA)
-	{	//BUG: Ada save
-		write_gamma(ada_mem[0]);
-		write_count(ada_mem[1]);
-	}
-	else if(mode==MODE_USB_ADA)
-	{
-		ada_mem[0]=set.gamma;
-		ada_mem[1]=set.count;
-	}
 }
 
 void write_oversample(uint_fast8_t oversamples)
@@ -223,119 +210,140 @@ void rtc_button(uint32_t time)
 	#endif
 }
 
-volatile Bool mode_select = false;
+typedef enum {
+	BUTTON_DEFAULT     = 0,
+	BUTTON_MODE_SEL    = 1,
+	BUTTON_BRIGHT_ADJ  = 2
+} button_mode_t;
 
-static void button_update(Bool key_state)
+volatile button_mode_t button_mode = BUTTON_DEFAULT;
+
+static void button_mode_set(button_mode_t new_mode);
+
+static void button_update(Bool key_long)
 {
-	if(set.mode==MODE_OFF)
+	if(set.mode==MODE_SLEEP)
 		mode_set_prev();
 	else
 	{
-		if(key_state)	//TODO: improve mode_select -  implement bright_adjust
-		{
-			//long
-			if (set.mode != MODE_OFF)
-			{
-				mode_select ^= true;
-				sled_update();
-			}
-		}
-		else
-		{
-			//short
-			if(mode_select)
-			{
+		switch (button_mode) {
+			case BUTTON_DEFAULT: 
+				if (key_long) {
+					button_mode=BUTTON_MODE_SEL;
+				} else {
+					mode_update(MODE_SLEEP);
+				} 
+				break;
+			case BUTTON_MODE_SEL:
 				//Change Mode
 				switch(set.mode)
 				{
-					case MODE_MOODLAMP:		mode_update(MODE_RAINBOW); break;
-					case MODE_RAINBOW:		mode_update(MODE_COLORSWIRL); break;
-					//case mode_colorswirl:	mode_update(MODE_MOODLAMP); break;
-					default:				mode_update(MODE_MOODLAMP); break;
+					case MODE_MOODLAMP:		button_mode_set(MODE_RAINBOW); break;
+					case MODE_RAINBOW:		button_mode_set(MODE_COLORSWIRL); break;
+					//case mode_colorswirl:	button_mode_set(MODE_MOODLAMP); break;
+					default:				button_mode_set(MODE_MOODLAMP); break;
 				}
-			}
-			else
-				mode_update(MODE_OFF);
+				break;
+			default: break;
 		}
 	}
+}
+
+static void button_mode_set(button_mode_t new_mode)
+{
+	button_mode=new_mode;
+	sled_update();
 }
 
 //////////////////////////////////////////////////////////////////////////
 /* SLED */
 
-uint_fast8_t blink = 0;
+bool blink_state = 0;
 
 const uint_fast8_t led_prescaler = 0.5/RTC_TIME+0.5;	//round
 volatile uint_fast8_t led_cycle;
 
-static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue);
+/* Init status LED */
+void sled_init(void)
+{
+	ioport_set_pin_dir(SLED_R, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(SLED_G, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(SLED_B, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_mode(SLED_R, IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_mode(SLED_G, IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_mode(SLED_B, IOPORT_MODE_INVERT_PIN);
+	
+	tc_enable(&SLED_TIMER);
+	tc_set_wgm(&SLED_TIMER, TC_WG_SS);		//Single Slope PWM
+	tc_write_period(&SLED_TIMER, 0xFF);		//8 Bit PWM
+	tc_set_resolution(&SLED_TIMER, 1000000);//3.92 kHz PWM freq
+	
+	tc_write_cc(&SLED_TIMER,SLED_TC_CC_B,255);		//SLED: Cyan
+	tc_write_cc(&SLED_TIMER,SLED_TC_CC_G,255);
+	tc_enable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_B|SLED_TC_CCEN_G);
+}
+
+static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue, bool blinking);
 
 void sled_update(void)
 {
 
-	if (mode_select)
-		sled_set(set.sled_bright/2,set.sled_bright/2,set.sled_bright/4);
+	if (button_mode != BUTTON_DEFAULT)
+		switch (button_mode) {
+			case BUTTON_BRIGHT_ADJ: sled_set(set.sled_bright/2, set.sled_bright/2, set.sled_bright/4, true);  break;
+			default:                sled_set(set.sled_bright/2, set.sled_bright/2, set.sled_bright/4, false); break;
+		}
 	else
 	{
 		if(set.mode&STATE_ON)
 		{
-			blink=0;
 			if(set.mode&STATE_USB)
-				sled_set(0,0,set.sled_bright);
+				sled_set(0, 0, set.sled_bright, false);
 			else
-				sled_set(0,set.sled_bright,0);
+				sled_set(0, set.sled_bright, 0, false);
 		}
 		else
 		{
-			if(set.mode&STATE_RES)	//TODO: error handling (sled, blink,...)
-			{
-				blink=1;
-				led_cycle=led_prescaler;
-				sled_set(255,0,0);
-			}
-			else
-			{
-				blink=0;
-				sled_set(set.sled_dim,set.sled_dim/4,0);
+			if(set.mode&STATE_RES) {	//TODO: error handling (sled, generic blink,...)
+				sled_set(set.sled_bright, 0, 0, true);
+			} else {
+				sled_set(set.sled_dim, set.sled_dim/4, 0, false);
 			}
 		}
 	}
 }
 
-static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue)
+static inline void sled_ch_set(enum tc_cc_channel_mask_enable_t TC_CCEN, enum tc_cc_channel_t TC_CC, uint_fast8_t value);
+
+static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue, bool blinking)
 {
-	if(red)
-	{
-		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
-		tc_write_cc(&SLED_TIMER, SLED_TC_CC_R, red);
+	if (blinking) {
+		blink_state = true;
+		led_cycle=led_prescaler;
+	} else {
+		led_cycle=0;
 	}
-	else
-		tc_disable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_R);
-	
-	if(green)
-	{
-		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_G);
-		tc_write_cc(&SLED_TIMER, SLED_TC_CC_G, green);		
+	sled_ch_set(SLED_TC_CCEN_R, SLED_TC_CC_R, red);
+	sled_ch_set(SLED_TC_CCEN_G, SLED_TC_CC_G, green);
+	sled_ch_set(SLED_TC_CCEN_B, SLED_TC_CC_B, blue);
+}
+
+static inline void sled_ch_set(enum tc_cc_channel_mask_enable_t TC_CCEN, enum tc_cc_channel_t TC_CC, uint_fast8_t value)
+{
+	if (value == 0) {
+		tc_disable_cc_channels(&SLED_TIMER, TC_CCEN);
+		} else {
+		tc_enable_cc_channels(&SLED_TIMER, TC_CCEN);
+		tc_write_cc(&SLED_TIMER, TC_CC, value);
 	}
-	else
-		tc_disable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_G);	
-	
-	if(blue)
-	{
-		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_B);
-		tc_write_cc(&SLED_TIMER, SLED_TC_CC_B, blue);
-	}
-	else
-		tc_disable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_B);
 }
 
 static void sled_blink(void);
 
 void rtc_sled(void)
 {
-	if(blink)
-	{
-		if(!--led_cycle)
+	if (led_cycle != 0) {
+		if(--led_cycle == 0)
 		{
 			sled_blink();
 			led_cycle=led_prescaler;
@@ -345,14 +353,11 @@ void rtc_sled(void)
 
 static void sled_blink(void) //Error blinking
 {
-	if(blink==0x01)
-	{
-		tc_disable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
-		blink=0x03;
-	}
-	else
-	{
-		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R);
-		blink=0x01;
+	blink_state ^= true;
+	if(blink_state) {
+		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R | SLED_TC_CCEN_G | SLED_TC_CCEN_B);
+		} else {
+		tc_disable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_R | SLED_TC_CCEN_G | SLED_TC_CCEN_B);
 	}
 }
+
