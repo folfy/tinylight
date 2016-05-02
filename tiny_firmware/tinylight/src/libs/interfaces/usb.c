@@ -7,12 +7,11 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
-#include "led.h"
-#include "set_sled.h"
-#include "misc_adc.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/interfaces/led.h"
+#include "libs/modules/settings_sled.h"
+#include "libs/modules/sleep_adc.h"
 #include "usb.h"
-
 
 static void ack_idle(void);
 static void nack_flush(uint_fast8_t fault_code);
@@ -22,8 +21,17 @@ static Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t
 //////////////////////////////////////////////////////////////////////////
 /* USB */
 
+/* Init VBus detection io */
+void Vbus_init(void)
+{
+	ioport_set_pin_dir(USB_VBUS,IOPORT_DIR_INPUT);
+	ioport_set_pin_mode(USB_VBUS,IOPORT_MODE_TOTEM);
+	ioport_set_pin_sense_mode(USB_VBUS,IOPORT_SENSE_BOTHEDGES);
+	VBus_INTMSK = VBus_Pin_bm;
+}
+
 //VBus detection
-ISR (Vbus_INT0_vect)
+ISR (Vbus_INT_vect)
 {
 	if(ioport_get_pin_level(USB_VBUS))
 		udc_attach();
@@ -92,8 +100,7 @@ void handle_usb(void)
 											if(!usb_buff[0] && (usb_buff[1]<=BUFFER_SIZE))
 											{
 												mode_update(MODE_USB_ADA);
-												write_gamma(GAMMA_OFF);
-												write_count(usb_buff[1] + 1);   //TODO: Check set.count
+												write_count(usb_buff[1] + 1);
 												usb_update(USB_STATE_ADA_RAW);
 											}
 											else
@@ -105,9 +112,12 @@ void handle_usb(void)
 			case USB_STATE_ADA_RAW:		udi_cdc_read_buf(&back_buffer[buffer_pos],rx_lim);
 										if((buffer_pos+=rx_lim)==set.count*3)
 										{
+											buffer_pos=0;
 											usb_update(USB_STATE_IDLE);
 											frame_update();
 										}
+										else
+											usb_update(USB_STATE_ADA_RAW);
 										break;
 			case USB_STATE_CMD:			switch(udi_cdc_getc())
 										{
@@ -165,6 +175,8 @@ void handle_usb(void)
 											ack_idle();
 											frame_update();
 										}
+										else
+											usb_update(USB_STATE_ADA_RAW);
 										break;
 			case USB_STATE_SET_READ:	usb_buff[0]=udi_cdc_getc();
 										if(usb_buff[0]==SET_READ_ALL)
@@ -227,6 +239,7 @@ static void nack_flush(uint_fast8_t fault_code)
 
 static void usb_update(uint_fast8_t state)
 {
+	const Byte read_seg=32;
 	switch(state)
 	{
 		case USB_STATE_IDLE:		rx_lim=3;	
@@ -236,10 +249,10 @@ static void usb_update(uint_fast8_t state)
 									break;
 		case USB_STATE_RAW_SINGLE:	rx_lim=3;	
 									break;
-		case USB_STATE_RAW_MULTI:	if(buffer_pos+32<=(set.count*3))
-										rx_lim=32;
+		case USB_STATE_RAW_MULTI:	rx_lim=set.count;/*if(buffer_pos+read_seg<=(set.count*3))
+										rx_lim=read_seg;
 									else
-										rx_lim=set.count*3-buffer_pos;
+										rx_lim=set.count*3-buffer_pos;*/
 									break;
 		case USB_STATE_SET_READ:	rx_lim=1;	
 									break;
@@ -247,10 +260,10 @@ static void usb_update(uint_fast8_t state)
 									break;
 		case USB_STATE_ADA_HEADER:	rx_lim=3;	
 									break;
-		case USB_STATE_ADA_RAW:		if(buffer_pos+32<=(set.count*3))
-										rx_lim=32;
+		case USB_STATE_ADA_RAW:		rx_lim=set.count;/*if(buffer_pos+read_seg<=(set.count*3))
+										rx_lim=read_seg;
 									else
-										rx_lim=set.count*3-buffer_pos;
+										rx_lim=set.count*3-buffer_pos;*/
 									break;
 	}
 	usb_state=state;

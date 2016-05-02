@@ -1,5 +1,5 @@
 /*
- * misc_adc.c
+ * sleep_adc.c
  *
  * Created: 21.04.2014 20:36:34
  *  Author: Folfy
@@ -7,10 +7,10 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
-#include "mul16x16.h"
-#include "set_sled.h"
-#include "misc_adc.h"
+#include "libs/math/mul16x16.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/modules/settings_sled.h"
+#include "sleep_adc.h"
 
 //////////////////////////////////////////////////////////////////////////
 /* ADC */
@@ -26,8 +26,48 @@ uint16_t t_scale13b;							// 2047/((2047 * temp_cal)>>14) = ~3.3	  U/Deg-> 0.3	
 
 static void ADC_int(ADC_t *adc, uint8_t ch_mask, adc_result_t result);
 
+/* Init ADC controller */
 void adc_init(void)
-{	// invert calibration data for unsigned mode (dV=+190LSB) to signed conversion factor, T[1/10 C]=(val*temp_cal)>>14-2730,
+{	
+	struct adc_config adc_conf;
+	struct adc_channel_config adcch_conf;
+
+	adc_read_configuration(&ADC, &adc_conf);
+	adcch_read_configuration(&ADC,ADC_CH0, &adcch_conf);
+		
+	adc_set_conversion_parameters(&adc_conf,ADC_SIGN_ON,ADC_RES_12, ADC_REF_BANDGAP);
+	adc_set_conversion_trigger(&adc_conf, ADC_TRIG_EVENT_SWEEP, 4, ADC_EVCH);
+	adc_set_current_limit(&adc_conf,ADC_CURRENT_LIMIT_HIGH);
+	adc_set_gain_impedance_mode(&adc_conf,ADC_GAIN_LOWIMPEDANCE);
+	adc_set_clock_rate(&adc_conf,125000);
+	adc_enable_internal_input(&adc_conf,ADC_INT_TEMPSENSE|ADC_INT_BANDGAP);
+		
+	adc_write_configuration(&ADC,&adc_conf);
+		
+	/* led supply voltage */
+	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Volt,ADCCH_NEG_NONE,1);
+	adcch_write_configuration(&ADC,ADC_CH0, &adcch_conf);
+		
+	/* led current */
+	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Sense,ADCCH_NEG_PIN_Sense,16);
+	adcch_write_configuration(&ADC,ADC_CH1,&adcch_conf);
+		
+	/* environment brightness */
+	adcch_set_input(&adcch_conf,ADCCH_POS_PIN_Light,ADCCH_NEG_PAD_GND,1);
+	adcch_write_configuration(&ADC,ADC_CH2,&adcch_conf);
+		
+	/* Internal temp */
+	adcch_set_input(&adcch_conf,ADCCH_POS_TEMPSENSE,ADCCH_NEG_NONE,1);
+	adcch_enable_interrupt(&adcch_conf);
+	adcch_write_configuration(&ADC,ADC_CH3,&adcch_conf);
+		
+	sysclk_enable_module(SYSCLK_PORT_GEN, SYSCLK_EVSYS);
+	ADC_EVCH_MUX=EVSYS_CHMUX_PRESCALER_16384_gc;	//ADC trigger:	EVSYS_CH0 -> (F_CPU / 16384: 1.95 kHz)
+		
+	ioport_set_pin_dir(Sens_Light_en,IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_HIGH);
+	
+	// invert calibration data for unsigned mode (dV=+190LSB) to signed conversion factor, T[1/10 C]=(val*temp_cal)>>14-2730,
 	t_scale13b=(((uint_fast32_t)3580)<<14)/(adc_get_calibration_data(ADC_CAL_TEMPSENSE)/2-95);
 	adc_enable(&ADC);
 	adc_set_callback(&ADC,ADC_int);
@@ -114,7 +154,7 @@ void power_down(void)
 	adc_disable(&ADC);
 	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_LOW);
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV_SLEEP,CONFIG_SYSCLK_PSBCDIV_SLEEP);
-	while((set.mode==MODE_OFF)&&!udi_cdc_is_rx_ready())
+	while((set.mode==MODE_SLEEP)&&!udi_cdc_is_rx_ready())
 		sleepmgr_enter_sleep();		
 	sysclk_set_prescalers(CONFIG_SYSCLK_PSADIV,CONFIG_SYSCLK_PSBCDIV);
 	ioport_set_pin_level(Sens_Light_en,IOPORT_PIN_LEVEL_HIGH);

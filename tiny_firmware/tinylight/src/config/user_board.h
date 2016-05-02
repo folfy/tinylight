@@ -18,10 +18,9 @@
 
 #define BOARD_REV 0x10			//rev 0x01 = debug board
 /*	uncomment definition to enable additional hardware modules	*/
-#define IR_avail				//IR-Receiver
-//#define RF_avail 1  			//RF-Transceiver
-#define RF_avail 2  			//BT-Transceiver
-//#define RF_avail 3  			//Debug Output (remove RF module first!), 
+#define RF_avail 1  			//RF-Transceiver
+//#define RF_avail 2  			//BT-Transceiver
+//#define RF_avail 3  			//Debug Output (remove RF module first!)
 //#define UART_avail			//UART-Port
 #define DEBUG					//enables reset to bootloader via button
 
@@ -39,9 +38,7 @@
 #define DMA_CHANNEL_LED			0
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
-#ifdef IR_avail
 #define IR_TIMER				TCC0
-#endif
 #define ADC						ADCA
 #define ADC_EVCH				0
 #define ADC_EVCH_MUX			EVSYS_CH0MUX
@@ -70,24 +67,22 @@
 //////////////////////////////////////////////////////////////////////////
 /* IR, Sens_Uin */
 
-#ifdef IR_avail
 #define IR_en					IOPORT_CREATE_PIN(PORTB,2)
 #define IR_in					IOPORT_CREATE_PIN(PORTB,1)
 #define IR_in_int				PIN1_bm
-#endif
 
 #define Sens_Uin				IOPORT_CREATE_PIN(PORTB,3)
 #define ADCCH_POS_PIN_Volt		ADCCH_POS_PIN11
 
 //////////////////////////////////////////////////////////////////////////
-/* LED_UART */
+/* LED_USART */
 
 #define	LED_CLK					IOPORT_CREATE_PIN(PORTC,1)
 #define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
 
-#define LED_UART				USARTC0
-#define LED_UART_DATA			USARTC0_DATA
-#define LED_UART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTC0_DRE_gc
+#define LED_USART				USARTC0
+#define LED_USART_DATA			USARTC0_DATA
+#define LED_USART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTC0_DRE_gc
 
 //////////////////////////////////////////////////////////////////////////
 /* RF Module */
@@ -144,8 +139,8 @@
 /* USB */
 
 #define USB_VBUS				IOPORT_CREATE_PIN(PORTD,3)
-#define Vbus_INT0_vect			PORTD_INT0_vect
-#define VBus_INT0MSK			PORTD_INT0MASK
+#define Vbus_INT_vect			PORTD_INT0_vect
+#define VBus_INTMSK				PORTD_INT0MASK
 #define VBus_Pin_bm				PIN3_bm
 
 #define USB_D_N					IOPORT_CREATE_PIN(PORTD,6)

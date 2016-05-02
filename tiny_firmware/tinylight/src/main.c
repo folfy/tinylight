@@ -21,19 +21,18 @@
  *
  *	TCD0:	PWM Status Led
  *	TCD1:	DMA-Wait
+ *
+ *  EVCH0:  ADC
  */
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
-#include "led.h"
-#include "usb.h"
-#include "set_sled.h"
-#include "misc_adc.h"
-
-#ifdef IR_avail
-	#include "IR.h"
-#endif
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/interfaces/led.h"
+#include "libs/interfaces/usb.h"
+#include "libs/interfaces/IR.h"
+#include "libs/modules/settings_sled.h"
+#include "libs/modules/sleep_adc.h"
 
 #if	RF_avail==2
 	#include "BT.h"
@@ -44,27 +43,45 @@ static void RTC_Alarm(uint32_t time);
 
 int main (void)
 {
-	board_init();
+	#if RF_avail==3
+	PORTCFG_VPCTRLA=PORTCFG_VP02MAP_PORTC_gc;
+	VPORT0_DIR|=PIN0_bm|PIN2_bm|PIN4_bm|PIN5_bm|PIN6_bm|PIN7_bm;
+	#endif
+	/* Init system functions (clock, sleepmgr) */
+	sysclk_init();
+	sleepmgr_init();
+	
+	/* Init mosfet_io */
+	ioport_init();
+	ioport_set_pin_dir(MOSFET_en, IOPORT_DIR_OUTPUT);
+
+	sled_init();	// Init status LED
+	Vbus_init();	// Init VBus detection
+	ioport_set_pin_mode(BUTTON,IOPORT_MODE_PULLUP|IOPORT_MODE_INVERT_PIN);	// Init button IO
+	rtc_init();		// Init RTC
+	pmic_init();	// Init interrupt controller
+	
+	/* led init requires settings to be initialized (dma_multi-flag) */
 	read_settings();
-	dma_init();
+	led_init();		// Init LED strip USART as SPI Master and led latch delay timer
+
+
 	rtc_set_callback(RTC_Alarm);
 	rtc_set_alarm_relative(0);
 	adc_init();
 	cpu_irq_enable();
 	usb_init();
-	
-	#ifdef IR_avail
-		IR_init();
-	#endif
+
+	IR_init();
 	#if	RF_avail==2
 		BT_init();
 	#endif
 	
 	while(1)
 	{
-		if(set.mode==MODE_OFF)
+		if(set.mode==MODE_SLEEP)
 			power_down();
-		
+			
 		#ifdef DEBUG
 		uint32_t time=rtc_get_time();
 		#endif
@@ -73,7 +90,7 @@ int main (void)
 		handle_auto_modes();
 		
 		#ifdef DEBUG
-		if((rtc_get_time()>=time+0.01*RTC_FREQ)&&set.mode!=MODE_OFF)
+		if((rtc_get_time()>=time+0.01*RTC_FREQ)&&set.mode!=MODE_SLEEP)
 		;//UNDONE: implement new error handling 
 		#endif
 		//TODO: add rms calc -> main

@@ -7,10 +7,10 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "linsin.h"
-#include "mul16x16.h"
-#include "tiny_protocol.h"
-#include "set_sled.h"
+#include "libs/math/linsin.h"
+#include "libs/math/mul16x16.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/modules/settings_sled.h"
 #include "led.h"
 
 uint_fast8_t back_buffer [BUFFER_SIZE*3];
@@ -291,6 +291,42 @@ void rtc_fps(void)
 	}
 }
 
+static void dma_init(void);
+
+#define USART_UCPHA_bm 0x02
+#define USART_DORD_bm  0x04
+
+/* Init LED strip USART as SPI Master */
+void led_init(void)
+{
+	/* Configure the USART output pins (CLK, TX) */
+	ioport_set_pin_mode(LED_CLK, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_mode(LED_TX,  IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_dir(LED_CLK, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(LED_TX,  IOPORT_DIR_OUTPUT);
+	
+	ioport_set_pin_level(LED_CLK, IOPORT_PIN_LEVEL_HIGH);
+	
+	/* Initialize USART */
+	USART_t *usart = &LED_USART;
+	sysclk_enable_peripheral_clock(usart);
+	
+	/* set master SPI Mode 0; 1MHz clock; enable SPI */
+	usart_rx_disable(usart);
+	usart_set_mode(usart, USART_CMODE_MSPI_gc);
+	usart->CTRLC &= ~USART_UCPHA_bm;
+	usart->CTRLC &= ~USART_DORD_bm;
+	usart_spi_set_baudrate(usart, 1000000, sysclk_get_per_hz());
+	usart_tx_enable(usart);
+	
+	/* Init SPI latch delay timer */
+	tc_enable(&SPI_TIMER);
+	tc_set_overflow_interrupt_level(&SPI_TIMER,TC_INT_LVL_MED);
+	tc_write_period(&SPI_TIMER,1000/2);
+	
+	dma_init();
+}
+
 //////////////////////////////////////////////////////////////////////////
 /* DMA */
 
@@ -298,7 +334,7 @@ struct dma_channel_config dmach_conf_single;
 struct dma_channel_config dmach_conf_multi;
 
 /* Init DMA setup struct */
-void dma_init(void)
+static void dma_init(void)
 {
 	//single
 	memset(&dmach_conf_single, 0, sizeof(dmach_conf_single));
@@ -313,9 +349,9 @@ void dma_init(void)
 
 	dma_channel_set_dest_reload_mode	(&dmach_conf_single, DMA_CH_DESTRELOAD_NONE_gc);
 	dma_channel_set_dest_dir_mode		(&dmach_conf_single, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address	(&dmach_conf_single, (uint16_t)(uintptr_t)&LED_UART_DATA);
+	dma_channel_set_destination_address	(&dmach_conf_single, (uint16_t)(uintptr_t)&LED_USART_DATA);
 
-	dma_channel_set_trigger_source		(&dmach_conf_single, LED_UART_DMA_TRIG_DRE);
+	dma_channel_set_trigger_source		(&dmach_conf_single, LED_USART_DMA_TRIG_DRE);
 	dma_channel_set_single_shot			(&dmach_conf_single);
 	
 	dma_channel_set_interrupt_level		(&dmach_conf_single, DMA_INT_LVL_MED);
@@ -332,9 +368,9 @@ void dma_init(void)
 
 	dma_channel_set_dest_reload_mode	(&dmach_conf_multi, DMA_CH_DESTRELOAD_NONE_gc);
 	dma_channel_set_dest_dir_mode		(&dmach_conf_multi, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address	(&dmach_conf_multi, (uint16_t)(uintptr_t)&LED_UART_DATA);
+	dma_channel_set_destination_address	(&dmach_conf_multi, (uint16_t)(uintptr_t)&LED_USART_DATA);
 
-	dma_channel_set_trigger_source		(&dmach_conf_multi, LED_UART_DMA_TRIG_DRE);
+	dma_channel_set_trigger_source		(&dmach_conf_multi, LED_USART_DMA_TRIG_DRE);
 	dma_channel_set_single_shot			(&dmach_conf_multi);
 	
 	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);

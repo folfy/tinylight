@@ -1,13 +1,13 @@
 /*
- * misc_adc.h
+ * sleep_adc.h
  *
  * Created: 21.04.2014 20:36:46
  *  Author: Folfy
  */ 
 
 
-#ifndef MISC_ADC_H_
-#define MISC_ADC_H_
+#ifndef SLEEP_ADC_H_
+#define SLEEP_ADC_H_
 
 /* ADC */
 
@@ -23,4 +23,4 @@ void power_down(void);
 
 extern Bool volatile sleeping;
 
-#endif /* MISC_ADC_H_ */
+#endif /* SLEEP_ADC_H_ */
