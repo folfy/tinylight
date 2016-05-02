@@ -291,20 +291,33 @@ void rtc_fps(void)
 	}
 }
 
-static void usart_init_spi_pull_up(USART_t *usart, const usart_spi_options_t *opt);
 static void dma_init(void);
+
+#define USART_UCPHA_bm 0x02
+#define USART_DORD_bm  0x04
 
 /* Init LED strip USART as SPI Master */
 void led_init(void)
 {
-	static usart_spi_options_t USART_SPI_OPTIONS = {
-		.spimode	= USART_CMODE_MSPI_gc,
-		.baudrate	= 1000000,					//1Mhz Clock
-		.data_order	= 0							//SPI Mode 0
-	};
-	usart_init_spi_pull_up(&LED_USART,&USART_SPI_OPTIONS);
-	ioport_set_pin_mode(LED_TX, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
-	ioport_set_pin_dir(LED_TX,IOPORT_DIR_OUTPUT);
+	/* Configure the USART output pins (CLK, TX) */
+	ioport_set_pin_mode(LED_CLK, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_mode(LED_TX,  IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_dir(LED_CLK, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(LED_TX,  IOPORT_DIR_OUTPUT);
+	
+	ioport_set_pin_level(LED_CLK, IOPORT_PIN_LEVEL_HIGH);
+	
+	/* Initialize USART */
+	USART_t *usart = &LED_USART;
+	sysclk_enable_peripheral_clock(usart);
+	
+	/* set master SPI Mode 0; 1MHz clock; enable SPI */
+	usart_rx_disable(usart);
+	usart_set_mode(usart, USART_CMODE_MSPI_gc);
+	usart->CTRLC &= ~USART_UCPHA_bm;
+	usart->CTRLC &= ~USART_DORD_bm;
+	usart_spi_set_baudrate(usart, 1000000, sysclk_get_per_hz());
+	usart_tx_enable(usart);
 	
 	/* Init SPI latch delay timer */
 	tc_enable(&SPI_TIMER);
@@ -312,124 +325,6 @@ void led_init(void)
 	tc_write_period(&SPI_TIMER,1000/2);
 	
 	dma_init();
-}
-
-
-
-//asf_usart_init_spi modified sck_pin pin configuration
-#  define USART_UCPHA_bm 0x02
-#  define USART_DORD_bm 0x04
-
-static void usart_init_spi_pull_up(USART_t *usart, const usart_spi_options_t *opt)
-{
-	ioport_pin_t sck_pin;
-	//bool invert_sck;
-
-	sysclk_enable_peripheral_clock(usart);
-
-	usart_rx_disable(usart);
-
-	/* configure Clock polarity using INVEN bit of the correct SCK I/O port **/
-	//invert_sck = (opt->spimode == 2) || (opt->spimode == 3);
-	//UNUSED(invert_sck);
-
-	#ifdef USARTC0
-	if ((uint16_t)usart == (uint16_t)&USARTC0) {
-		#  ifdef PORT_USART0_bm
-		if (PORTC.REMAP & PORT_USART0_bm) {
-			sck_pin = IOPORT_CREATE_PIN(PORTC, 5);
-			} else {
-			sck_pin = IOPORT_CREATE_PIN(PORTC, 1);
-		}
-		#  else
-		sck_pin = IOPORT_CREATE_PIN(PORTC, 1);
-		#  endif
-	}
-	#endif
-	#ifdef USARTC1
-	if ((uint16_t)usart == (uint16_t)&USARTC1) {
-		sck_pin = IOPORT_CREATE_PIN(PORTC, 5);
-	}
-	#endif
-	#ifdef USARTD0
-	if ((uint16_t)usart == (uint16_t)&USARTD0) {
-		#  ifdef PORT_USART0_bm
-		if (PORTD.REMAP & PORT_USART0_bm) {
-			sck_pin = IOPORT_CREATE_PIN(PORTD, 5);
-			} else {
-			sck_pin = IOPORT_CREATE_PIN(PORTD, 1);
-		}
-		#  else
-		sck_pin = IOPORT_CREATE_PIN(PORTD, 1);
-		#  endif
-	}
-	#endif
-	#ifdef USARTD1
-	if ((uint16_t)usart == (uint16_t)&USARTD1) {
-		sck_pin = IOPORT_CREATE_PIN(PORTD, 5);
-	}
-	#endif
-	#ifdef USARTE0
-	if ((uint16_t)usart == (uint16_t)&USARTE0) {
-		#  ifdef PORT_USART0_bm
-		if(PORTE.REMAP & PORT_USART0_bm) {
-			sck_pin = IOPORT_CREATE_PIN(PORTE, 5);
-			} else {
-			sck_pin = IOPORT_CREATE_PIN(PORTE, 1);
-		}
-		#  else
-		sck_pin = IOPORT_CREATE_PIN(PORTE, 1);
-		#  endif
-	}
-	#endif
-	#ifdef USARTE1
-	if ((uint16_t)usart == (uint16_t)&USARTE1) {
-		sck_pin = IOPORT_CREATE_PIN(PORTE, 5);
-	}
-	#endif
-	#ifdef USARTF0
-	if ((uint16_t)usart == (uint16_t)&USARTF0) {
-		#  ifdef PORT_USART0_bm
-		if(PORTF.REMAP & PORT_USART0_bm) {
-			sck_pin = IOPORT_CREATE_PIN(PORTF, 5);
-			} else {
-			sck_pin = IOPORT_CREATE_PIN(PORTF, 1);
-		}
-		#  else
-		sck_pin = IOPORT_CREATE_PIN(PORTF, 1);
-		# endif
-	}
-	#endif
-	#ifdef USARTF1
-	if ((uint16_t)usart == (uint16_t)&USARTF1) {
-		sck_pin = IOPORT_CREATE_PIN(PORTF, 5);
-	}
-	#endif
-
-	/* Configure the USART output pin */
-	ioport_set_pin_dir(sck_pin, IOPORT_DIR_OUTPUT);
-	ioport_set_pin_mode(sck_pin, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
-	
-	//ioport_set_pin_mode(sck_pin,
-	//IOPORT_MODE_TOTEM | (invert_sck? IOPORT_MODE_INVERT_PIN : 0));
-	ioport_set_pin_level(sck_pin, IOPORT_PIN_LEVEL_HIGH);
-
-	usart_set_mode(usart, USART_CMODE_MSPI_gc);
-
-	if (opt->spimode == 1 || opt->spimode == 3) {
-		usart->CTRLC |= USART_UCPHA_bm;
-		} else {
-		usart->CTRLC &= ~USART_UCPHA_bm;
-	}
-	if (opt->data_order) {
-		(usart)->CTRLC |= USART_DORD_bm;
-		} else {
-		(usart)->CTRLC &= ~USART_DORD_bm;
-	}
-
-	usart_spi_set_baudrate(usart, opt->baudrate, sysclk_get_per_hz());
-	usart_tx_enable(usart);
-	//usart_rx_enable(usart);
 }
 
 //////////////////////////////////////////////////////////////////////////
