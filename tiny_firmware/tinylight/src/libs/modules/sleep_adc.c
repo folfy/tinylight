@@ -1,5 +1,5 @@
 /*
- * misc_adc.c
+ * sleep_adc.c
  *
  * Created: 21.04.2014 20:36:34
  *  Author: Folfy
@@ -7,10 +7,10 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
-#include "mul16x16.h"
-#include "set_sled.h"
-#include "misc_adc.h"
+#include "libs/math/mul16x16.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/modules/settings_sled.h"
+#include "sleep_adc.h"
 
 //////////////////////////////////////////////////////////////////////////
 /* ADC */

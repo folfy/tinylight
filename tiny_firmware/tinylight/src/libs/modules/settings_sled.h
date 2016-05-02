@@ -1,13 +1,13 @@
 /*
- * set_sled.h
+ * settings_sled.h
  *
  * Created: 21.04.2014 20:03:44
  *  Author: Folfy
  */ 
 
 
-#ifndef SET_SLED_H_
-#define SET_SLED_H_
+#ifndef SETTINGS_SLED_H_
+#define SETTINGS_SLED_H_
 
 /* EEPROM */
 void read_settings(void);
@@ -40,4 +40,4 @@ void status_led_off(void);
 void rtc_sled(void);
 
 
-#endif /* SET_SLED_H_ */
+#endif /* SETTINGS_SLED_H_ */

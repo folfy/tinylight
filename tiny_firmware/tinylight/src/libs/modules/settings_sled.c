@@ -1,5 +1,5 @@
 /*
- * set_sled.c
+ * settings_sled.c
  *
  * Created: 21.04.2014 20:03:58
  *  Author: Folfy
@@ -7,10 +7,10 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
-#include "led.h"
-#include "misc_adc.h"
-#include "set_sled.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/interfaces/led.h"
+#include "libs/modules/sleep_adc.h"
+#include "settings_sled.h"
 
 settings set;
 

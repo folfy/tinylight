@@ -27,12 +27,12 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
-#include "led.h"
-#include "usb.h"
-#include "set_sled.h"
-#include "misc_adc.h"
-#include "IR.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/interfaces/led.h"
+#include "libs/interfaces/usb.h"
+#include "libs/interfaces/IR.h"
+#include "libs/modules/settings_sled.h"
+#include "libs/modules/sleep_adc.h"
 
 #if	RF_avail==2
 	#include "BT.h"

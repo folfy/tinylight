@@ -7,10 +7,10 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "linsin.h"
-#include "mul16x16.h"
-#include "tiny_protocol.h"
-#include "set_sled.h"
+#include "libs/math/linsin.h"
+#include "libs/math/mul16x16.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/modules/settings_sled.h"
 #include "led.h"
 
 uint_fast8_t back_buffer [BUFFER_SIZE*3];

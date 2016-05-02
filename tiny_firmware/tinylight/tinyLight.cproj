@@ -437,43 +437,61 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="src\BT.c">
+    <Compile Include="src\config\user_board.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\BT.h">
+    <Compile Include="src\libs\interfaces\BT.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\IR.c">
+    <Compile Include="src\libs\interfaces\BT.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\IR.h">
+    <Compile Include="src\libs\interfaces\IR.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\misc_adc.c">
+    <Compile Include="src\libs\interfaces\IR.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\misc_adc.h">
+    <Compile Include="src\libs\interfaces\led.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\set_sled.c">
+    <Compile Include="src\libs\interfaces\led.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\set_sled.h">
+    <Compile Include="src\libs\interfaces\usb.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\tiny_protocol.c">
+    <Compile Include="src\libs\interfaces\usb.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\tiny_protocol.h">
+    <Compile Include="src\libs\math\linsin.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\usb.c">
+    <Compile Include="src\libs\math\linsin.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\usb.h">
+    <Compile Include="src\libs\math\mul16x16.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\user_board.h">
+    <Compile Include="src\libs\math\mul16x16.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libs\modules\sleep_adc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libs\modules\sleep_adc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libs\modules\settings_sled.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libs\modules\settings_sled.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libs\protocol\tiny_protocol.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\libs\protocol\tiny_protocol.h">
       <SubType>compile</SubType>
     </Compile>
     <None Include="atmel_devices_cdc.cat">
@@ -647,25 +665,7 @@
     <None Include="src\config\conf_timeout.h">
       <SubType>compile</SubType>
     </None>
-    <Compile Include="src\led.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\led.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\linsin.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\linsin.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="src\main.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\mul16x16.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\mul16x16.h">
       <SubType>compile</SubType>
     </Compile>
     <None Include="src\asf\xmega\drivers\sleep\sleep.h">
@@ -811,6 +811,10 @@
     <Folder Include="src\asf\xmega\utils\preprocessor\" />
     <Folder Include="src\config\" />
     <Folder Include="src\libs" />
+    <Folder Include="src\libs\interfaces" />
+    <Folder Include="src\libs\math" />
+    <Folder Include="src\libs\modules" />
+    <Folder Include="src\libs\protocol" />
     <Folder Include="vsix\" />
   </ItemGroup>
   <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\AvrGCC.targets" />

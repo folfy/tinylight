@@ -7,11 +7,11 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/interfaces/led.h"
+#include "libs/modules/settings_sled.h"
+#include "libs/modules/sleep_adc.h"
 #include "IR.h"
-#include "led.h"
-#include "set_sled.h"
-#include "misc_adc.h"
 
 #define TC_cycle 32000000/64
 #define nec_start_max 0.015*TC_cycle

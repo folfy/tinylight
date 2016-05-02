@@ -7,12 +7,11 @@
 
 #include <stdio.h>
 #include <asf.h>
-#include "tiny_protocol.h"
-#include "led.h"
-#include "set_sled.h"
-#include "misc_adc.h"
+#include "libs/protocol/tiny_protocol.h"
+#include "libs/interfaces/led.h"
+#include "libs/modules/settings_sled.h"
+#include "libs/modules/sleep_adc.h"
 #include "usb.h"
-
 
 static void ack_idle(void);
 static void nack_flush(uint_fast8_t fault_code);
