@@ -3,6 +3,42 @@
  *
  * \brief User board definition template
  *
+ * I/O Pins:
+ *	PA1:	A_IN:		Light Sensor
+ *	PA5:	D_OUT:		Power Mosfet
+ *	PA6:	A_IN:		Current-Sensor +
+ *	PA7:	A_IN:		Current-Sensor -
+ *	PB1:	D_OUT:		IR_enable
+ *	PB2:	D_IN:		IR-In
+ *	PB3:	A_IN:		+5V-Sensor
+ *	PC1:	D_OUT:		XCK-Led Stripe
+ *	PC3:	D_OUT:		TX-Led Stripe
+ *	PD0:	D_OUT:		Led blue
+ *	PD1:	D_OUT:		Led green
+ *	PD2:	D_OUT:		Led red
+ *	PD3:	D_IN:		USB VBus Detection
+ *	PD6:	D_INOUT:	USB Data -
+ *	PD7:	D_INOUT:	USB Data +
+ *  PE1:    D_OUT:      LED Data - clock (WS2811/WS2812)
+ *  PE3:    D_OUT:      LED Data - data  (WS2811/WS2812)
+ *	PR3:	D_IN:		Pushbutton
+ *
+ * Timer/counter units:
+ *  TCC0:   LED (WS2811/WS2812)
+ *  TCC1:	IR
+ *	TCD0:	PWM Status Led
+ *	TCD1:	DMA-Wait
+ *
+ * Event channels:
+ *  EVCH0:  ADC
+ *  EVCH1:  LED_BIT			(CLK, Rising edge)
+ *  EVCH2:  LED_LOW			(DATA, Falling edge)
+ *  EVCH3:  LED_HIGH		(DATA, Rising edge)
+ *
+ * DMA channels:
+ *  DMACH0:	LED Data
+ *  DMACH1: LED_LOW
+ *  DMACH2: LED_HIGH
  */
 
  /* This file is intended to contain definitions and configuration details for
@@ -36,9 +72,11 @@
 #endif
 
 #define DMA_CHANNEL_LED			0
+#define DMA_CHANNEL_LED_LOW		1
+#define DMA_CHANNEL_LED_HIGH	2
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
-#define IR_TIMER				TCC0
+#define IR_TIMER				TCC1
 #define ADC						ADCA
 #define ADC_EVCH				0
 #define ADC_EVCH_MUX			EVSYS_CH0MUX
@@ -77,12 +115,28 @@
 //////////////////////////////////////////////////////////////////////////
 /* LED_USART */
 
+#define LED_WS281X 1
+
+#if		LED_WS281X==1
+#define	LED_CLK					IOPORT_CREATE_PIN(PORTC,1)
+#define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
+
+#define	LED_XCLK				IOPORT_CREATE_PIN(PORTE,1)
+#define	LED_XTX					IOPORT_CREATE_PIN(PORTE,3)
+#define LED_USART				USARTE0
+#define LED_USART_DATA			USARTE0_DATA
+#define LED_USART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTE0_DRE_gc
+
+#define LED_TC					TCC0
+#define LED_TC_CC				TCC0_CCB
+#else
 #define	LED_CLK					IOPORT_CREATE_PIN(PORTC,1)
 #define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
 
 #define LED_USART				USARTC0
 #define LED_USART_DATA			USARTC0_DATA
 #define LED_USART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTC0_DRE_gc
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 /* RF Module */

@@ -305,6 +305,13 @@ void led_init(void)
 	ioport_set_pin_dir(LED_CLK, IOPORT_DIR_OUTPUT);
 	ioport_set_pin_dir(LED_TX,  IOPORT_DIR_OUTPUT);
 	
+	#if LED_WS281X==1
+	ioport_set_pin_mode(LED_XCLK, IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_mode(LED_XTX,  IOPORT_MODE_WIREDANDPULL|IOPORT_MODE_SLEW_RATE_LIMIT|IOPORT_MODE_INVERT_PIN);
+	ioport_set_pin_dir(LED_XCLK, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_dir(LED_XTX,  IOPORT_DIR_OUTPUT);
+	#endif
+	
 	ioport_set_pin_level(LED_CLK, IOPORT_PIN_LEVEL_HIGH);
 	
 	/* Initialize USART */
@@ -323,8 +330,49 @@ void led_init(void)
 	tc_enable(&SPI_TIMER);
 	tc_set_overflow_interrupt_level(&SPI_TIMER,TC_INT_LVL_MED);
 	tc_write_period(&SPI_TIMER,1000/2);
+	tc_set_overflow_interrupt_callback(&SPI_TIMER, SPI_TIMER_OVF_int);
+	
+	#if LED_WS281X==1
+	tc_enable(&LED_TC);
+	//tc_set_overflow_interrupt_level()
+	#endif
 	
 	dma_init();
+}
+
+//////////////////////////////////////////////////////////////////////////
+/* WS281X */
+
+static void dma_ws281x(void)
+{
+	uint8_t led_low = 100;
+	uint8_t led_high = 180;
+	struct dma_channel_config dmach_conf_led;
+	
+	//low
+	memset(&dmach_conf_led, 0, sizeof(dmach_conf_led));
+
+	dma_channel_set_burst_length		(&dmach_conf_led, DMA_CH_BURSTLEN_1BYTE_gc);
+	dma_channel_set_transfer_count		(&dmach_conf_led, 1);
+
+	dma_channel_set_src_reload_mode		(&dmach_conf_led, DMA_CH_SRCRELOAD_NONE_gc);
+	dma_channel_set_src_dir_mode		(&dmach_conf_led, DMA_CH_SRCDIR_FIXED_gc);
+	//dma_channel_set_source_address	(&dmach_conf_led, (uint16_t)(uintptr_t)&led_low);
+
+	dma_channel_set_dest_reload_mode	(&dmach_conf_led, DMA_CH_DESTRELOAD_NONE_gc);
+	dma_channel_set_dest_dir_mode		(&dmach_conf_led, DMA_CH_DESTDIR_FIXED_gc);
+	dma_channel_set_destination_address	(&dmach_conf_led, (uint16_t)(uintptr_t)(&LED_TC_CC));
+
+	dma_channel_set_trigger_source		(&dmach_conf_led, LED_USART_DMA_TRIG_DRE);
+	dma_channel_set_single_shot			(&dmach_conf_led);
+	
+	dma_enable();
+	
+	dma_channel_set_source_address		(&dmach_conf_led, (uint16_t)(uintptr_t)&led_low);
+	dma_channel_write_config(DMA_CHANNEL_LED_LOW, &dmach_conf_led);
+	
+	dma_channel_set_source_address		(&dmach_conf_led, (uint16_t)(uintptr_t)&led_high);
+	dma_channel_write_config(DMA_CHANNEL_LED_HIGH, &dmach_conf_led);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -375,10 +423,9 @@ static void dma_init(void)
 	
 	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);
 	
-	tc_set_overflow_interrupt_callback(&SPI_TIMER,SPI_TIMER_OVF_int);
 	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) SPI_DMA_int);
 	dma_enable();
-};
+}
 
 void dma_update_count(void)
 {
