@@ -23,7 +23,7 @@ static Bool string_parser(uint8_t buff_a[], const uint8_t buff_b[], uint_fast8_t
 /* USB */
 
 //VBus detection
-ISR (Vbus_INT_vect)
+ISR (Vbus_INT0_vect)
 {
 	if(ioport_get_pin_level(USB_VBUS))
 		udc_attach();
@@ -93,7 +93,7 @@ void handle_usb(void)
 											{
 												mode_update(MODE_USB_ADA);
 												write_gamma(GAMMA_OFF);
-												write_count(usb_buff[1] + 1);
+												write_count(usb_buff[1] + 1);   //TODO: Check set.count
 												usb_update(USB_STATE_ADA_RAW);
 											}
 											else

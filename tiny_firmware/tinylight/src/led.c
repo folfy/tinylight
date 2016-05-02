@@ -313,9 +313,9 @@ void dma_init(void)
 
 	dma_channel_set_dest_reload_mode	(&dmach_conf_single, DMA_CH_DESTRELOAD_NONE_gc);
 	dma_channel_set_dest_dir_mode		(&dmach_conf_single, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address	(&dmach_conf_single, (uint16_t)(uintptr_t)&LED_USART_DATA);
+	dma_channel_set_destination_address	(&dmach_conf_single, (uint16_t)(uintptr_t)&LED_UART_DATA);
 
-	dma_channel_set_trigger_source		(&dmach_conf_single, LED_USART_DMA_TRIG_DRE);
+	dma_channel_set_trigger_source		(&dmach_conf_single, LED_UART_DMA_TRIG_DRE);
 	dma_channel_set_single_shot			(&dmach_conf_single);
 	
 	dma_channel_set_interrupt_level		(&dmach_conf_single, DMA_INT_LVL_MED);
@@ -332,9 +332,9 @@ void dma_init(void)
 
 	dma_channel_set_dest_reload_mode	(&dmach_conf_multi, DMA_CH_DESTRELOAD_NONE_gc);
 	dma_channel_set_dest_dir_mode		(&dmach_conf_multi, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address	(&dmach_conf_multi, (uint16_t)(uintptr_t)&LED_USART_DATA);
+	dma_channel_set_destination_address	(&dmach_conf_multi, (uint16_t)(uintptr_t)&LED_UART_DATA);
 
-	dma_channel_set_trigger_source		(&dmach_conf_multi, LED_USART_DMA_TRIG_DRE);
+	dma_channel_set_trigger_source		(&dmach_conf_multi, LED_UART_DMA_TRIG_DRE);
 	dma_channel_set_single_shot			(&dmach_conf_multi);
 	
 	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);
