@@ -38,9 +38,7 @@
 #define DMA_CHANNEL_LED			0
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
-#ifdef IR_avail
 #define IR_TIMER				TCC0
-#endif
 #define ADC						ADCA
 #define ADC_EVCH				0
 #define ADC_EVCH_MUX			EVSYS_CH0MUX
@@ -69,11 +67,9 @@
 //////////////////////////////////////////////////////////////////////////
 /* IR, Sens_Uin */
 
-#ifdef IR_avail
 #define IR_en					IOPORT_CREATE_PIN(PORTB,2)
 #define IR_in					IOPORT_CREATE_PIN(PORTB,1)
 #define IR_in_int				PIN1_bm
-#endif
 
 #define Sens_Uin				IOPORT_CREATE_PIN(PORTB,3)
 #define ADCCH_POS_PIN_Volt		ADCCH_POS_PIN11

@@ -145,8 +145,8 @@
     <KeepTimersRunning>true</KeepTimersRunning>
     <OverrideVtor>false</OverrideVtor>
     <OverrideVtorValue>exception_table</OverrideVtorValue>
-    <eraseonlaunchrule>0</eraseonlaunchrule>
-    <avrtool>com.atmel.avrdbg.tool.avrdragon</avrtool>
+    <eraseonlaunchrule>6</eraseonlaunchrule>
+    <avrtool>com.atmel.avrdbg.tool.flip</avrtool>
     <avrtoolinterface>PDI</avrtoolinterface>
     <com_atmel_avrdbg_tool_avrdragon>
       <ToolType>com.atmel.avrdbg.tool.avrdragon</ToolType>
@@ -205,6 +205,19 @@
       <EnableApplicationOutput xmlns="">True</EnableApplicationOutput>
       <EnableDataWatchPoints xmlns="">True</EnableDataWatchPoints>
     </PercepioTrace>
+    <avrtoolserialnumber />
+    <avrdeviceexpectedsignature>0x1E9541</avrdeviceexpectedsignature>
+    <com_atmel_avrdbg_tool_flip>
+      <ToolOptions xmlns="">
+        <InterfaceProperties>
+        </InterfaceProperties>
+        <InterfaceName>PDI</InterfaceName>
+      </ToolOptions>
+      <ToolType xmlns="">com.atmel.avrdbg.tool.flip</ToolType>
+      <ToolNumber xmlns="">
+      </ToolNumber>
+      <ToolName xmlns="">Atmel FLIP</ToolName>
+    </com_atmel_avrdbg_tool_flip>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <MemorySettings />

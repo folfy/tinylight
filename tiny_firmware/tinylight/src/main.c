@@ -47,10 +47,8 @@ int main (void)
 	PORTCFG_VPCTRLA=PORTCFG_VP02MAP_PORTC_gc;
 	VPORT0_DIR|=PIN0_bm|PIN2_bm|PIN4_bm|PIN5_bm|PIN6_bm|PIN7_bm;
 	#endif
-	/* Init clocks*/
+	/* Init system functions (clock, sleepmgr) */
 	sysclk_init();
-	
-	/* Initialize the sleep manager */
 	sleepmgr_init();
 	
 	/* Init mosfet_io */
@@ -59,12 +57,15 @@ int main (void)
 
 	sled_init();	// Init status LED
 	Vbus_init();	// Init VBus detection
-	led_init();		// Init LED strip USART as SPI Master and led latch delay timer
 	ioport_set_pin_mode(BUTTON,IOPORT_MODE_PULLUP|IOPORT_MODE_INVERT_PIN);	// Init button IO
 	rtc_init();		// Init RTC
 	pmic_init();	// Init interrupt controller
 	
+	/* led init requires settings to be initialized (dma_multi-flag) */
 	read_settings();
+	led_init();		// Init LED strip USART as SPI Master and led latch delay timer
+
+
 	rtc_set_callback(RTC_Alarm);
 	rtc_set_alarm_relative(0);
 	adc_init();
