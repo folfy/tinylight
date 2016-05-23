@@ -72,14 +72,21 @@
 #endif
 
 #define DMA_CHANNEL_LED			0
-#define DMA_CHANNEL_LED_LOW		1
-#define DMA_CHANNEL_LED_HIGH	2
+#define DMA_CHANNEL_LED_PWM		1
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
 #define IR_TIMER				TCC1
 #define ADC						ADCA
+
 #define ADC_EVCH				0
 #define ADC_EVCH_MUX			EVSYS_CH0MUX
+
+#define LED_DATA_EVCH			1
+#define LED_DATA_EVCH_MUX		EVSYS_CH1MUX
+#define LED_TRIG_DATA			DMA_CH_TRIGSRC_EVSYS_CH1_gc
+
+#define LED_CLK_EVCH_MUX		EVSYS_CH2MUX
+#define LED_CLK_EVCH			TC_EVSEL_CH2_gc
 
 //////////////////////////////////////////////////////////////////////////
 /* Sens_Light */
@@ -117,12 +124,14 @@
 
 #define LED_WS281X 1
 
-#if		LED_WS281X==1
 #define	LED_CLK					IOPORT_CREATE_PIN(PORTC,1)
 #define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
 
+#if		LED_WS281X==1
 #define	LED_XCLK				IOPORT_CREATE_PIN(PORTE,1)
 #define	LED_XTX					IOPORT_CREATE_PIN(PORTE,3)
+#define LED_XCLK_EVMUX			EVSYS_CHMUX_PORTE_PIN1_gc
+#define LED_XTX_EVMUX			EVSYS_CHMUX_PORTE_PIN3_gc
 #define LED_USART				USARTE0
 #define LED_USART_DATA			USARTE0_DATA
 #define LED_USART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTE0_DRE_gc
@@ -130,9 +139,6 @@
 #define LED_TC					TCC0
 #define LED_TC_CC				TCC0_CCB
 #else
-#define	LED_CLK					IOPORT_CREATE_PIN(PORTC,1)
-#define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
-
 #define LED_USART				USARTC0
 #define LED_USART_DATA			USARTC0_DATA
 #define LED_USART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTC0_DRE_gc
