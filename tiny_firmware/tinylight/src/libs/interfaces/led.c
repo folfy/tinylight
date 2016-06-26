@@ -68,31 +68,57 @@ void frame_update(void)
 		else
 		{
 			gamma_map();
+			#if LED_WS281X==1
+			tc_write_clock_source(&LED_TC,TC_CLKSEL_DIV1_gc);
+			#endif
 			dma_channel_enable(DMA_CHANNEL_LED);
 		}
 	}
 }
 
 uint_fast8_t run=0;
+static inline uint8_t gamma_lookup(uint8_t raw_value);
 
 static void gamma_map(void)
 {
 	if(set.gamma)
 	{
-		for(uint_fast16_t n=0;n<set.count*3;n++)
-		{
-			uint_fast8_t val=back_buffer[n];
-			val=(val*set.alpha)>>8;				//TODO: implement auto_alpha
-			front_buffer[n]=gamma_lut[val];
-			if(gamma_ms[val]>run)				//oversample pwm for increased resolution
-				front_buffer[n]++;
-		}
+		#if LED_WS281X != 1
+			for(uint_fast16_t n=0;n<set.count*3;n++) {
+				front_buffer[n] = gamma_lookup(back_buffer[n]);
+			}
+		#else
+			// back_buffer order: RGB; front_buffer order: GRB;
+			for(uint_fast16_t n=0;n<set.count*3;n+=3) {
+				front_buffer[n]   = gamma_lookup(back_buffer[n+1]);
+				front_buffer[n+1] = gamma_lookup(back_buffer[n]);
+				front_buffer[n+2] = gamma_lookup(back_buffer[n+2]);
+			}
+		#endif
+	} else {
+		#if LED_WS281X != 1
+			for(uint_fast16_t n=0;n<set.count*3;n++) {
+				front_buffer[n] = back_buffer[n];
+			}
+		#else
+			// back_buffer order: RGB; front_buffer order: GRB;
+			for(uint_fast16_t n=0;n<set.count*3;n+=3) {
+				front_buffer[n]   = back_buffer[n+1];
+				front_buffer[n+1] = back_buffer[n];
+				front_buffer[n+2] = back_buffer[n+2];
+			}
+		#endif
 	}
-	else
-	{
-		for(uint_fast16_t n=0;n<set.count*3;n++)
-			front_buffer[n]=back_buffer[n];
-	}
+}
+
+static inline uint8_t gamma_lookup(uint8_t val)
+{
+	uint8_t corr_val;
+	val=(val*set.alpha)>>8;				//TODO: implement auto_alpha
+	corr_val=gamma_lut[val];
+	if(gamma_ms[val]>run)				//oversample pwm for increased resolution
+		corr_val++;
+	return corr_val;
 }
 
 void gamma_calc(void)
@@ -259,8 +285,19 @@ static void SPI_TIMER_OVF_int(void)
 	tc_write_clock_source(&SPI_TIMER,TC_CLKSEL_OFF_gc);
 	if (update_frame)
 	{
+		#if LED_WS281X==1
+		// Reset PWM DMA in case an event was missed?
+		//dma_channel_disable(DMA_CHANNEL_LED_TIMER);
+		//dma_channel_enable(DMA_CHANNEL_LED_TIMER);
+		tc_write_count(&LED_TC, 2000);
+		tc_write_clock_source(&LED_TC,TC_CLKSEL_DIV1_gc);
+		#endif
 		dma_channel_enable(DMA_CHANNEL_LED);
 		update_frame = false;
+	} else {
+		#if LED_WS281X==1
+		tc_write_clock_source(&LED_TC, TC_CLKSEL_OFF_gc);
+		#endif
 	}
 	frame_count++;
 }
@@ -306,9 +343,8 @@ void led_init(void)
 	ioport_set_pin_dir(LED_CLK, IOPORT_DIR_OUTPUT);
 	ioport_set_pin_dir(LED_TX,  IOPORT_DIR_OUTPUT);
 	
-
-	
 	ioport_set_pin_level(LED_CLK, IOPORT_PIN_LEVEL_HIGH);
+	ioport_set_pin_level(LED_TX, IOPORT_PIN_LEVEL_HIGH);
 	
 	/* Initialize USART */
 	USART_t *usart = &LED_USART;
@@ -319,17 +355,20 @@ void led_init(void)
 	usart_set_mode(usart, USART_CMODE_MSPI_gc);
 	usart->CTRLC &= ~USART_UCPHA_bm;
 	usart->CTRLC &= ~USART_DORD_bm;
-	usart_spi_set_baudrate(usart, 1000000, sysclk_get_per_hz());
+	usart_spi_set_baudrate(usart, 800000, sysclk_get_per_hz()); // WS281x spec. is 800kHz
 	usart_tx_enable(usart);
 	
 	/* Init SPI latch delay timer */
 	tc_enable(&SPI_TIMER);
-	tc_set_overflow_interrupt_level(&SPI_TIMER,TC_INT_LVL_MED);
-	tc_write_period(&SPI_TIMER,1000/2);
+	tc_set_overflow_interrupt_level(&SPI_TIMER, TC_INT_LVL_MED);
+	//TODO: Take clock into account; change for WS281x; move to CC of long RTC?
+	tc_write_period(&SPI_TIMER, 1000/2);
 	tc_set_overflow_interrupt_callback(&SPI_TIMER, SPI_TIMER_OVF_int);
 	
+	//TODO: brownout-detection  DAC / Comperator
+	
 	#if LED_WS281X==1
-	init_ws281x();
+		init_ws281x();
 	#endif
 	
 	dma_init();
@@ -340,7 +379,9 @@ void led_init(void)
 
 static void dma_ws281x(void);
 
-const static uint8_t led_pwm[2] = { 10, 20 };
+
+// 48MHz: {14,28}; 32MHz: {10,18}
+static uint16_t led_pwm[2];
 
 static void init_ws281x(void)
 {
@@ -349,25 +390,43 @@ static void init_ws281x(void)
 	ioport_set_pin_mode(LED_XTX,  IOPORT_MODE_TOTEM|IOPORT_MODE_SLEW_RATE_LIMIT);
 	ioport_set_pin_dir(LED_XCLK, IOPORT_DIR_OUTPUT);
 	ioport_set_pin_dir(LED_XTX,  IOPORT_DIR_OUTPUT);
-	ioport_set_pin_sense_mode(LED_XCLK, IOPORT_SENSE_BOTHEDGES);
-	ioport_set_pin_sense_mode(LED_XTX, IOPORT_SENSE_RISING);
+	ioport_set_pin_sense_mode(LED_XCLK, IOPORT_SENSE_FALLING);
+	ioport_set_pin_sense_mode(LED_XTX, IOPORT_SENSE_BOTHEDGES);
+	
+	// Calculate timing (times take switching delays into account; (A<<32 * B>>16)>>16 = A * B)
+	led_pwm[0]=MulU16X16toH16Round(1246, sysclk_get_per_hz()>>16); // 290ns << 32 = ~1246s
+	led_pwm[1]=MulU16X16toH16Round(2491, sysclk_get_per_hz()>>16); // 580ns << 32 = ~2491s
 	
 	// Setup modulating timer
 	tc_enable(&LED_TC);
-	tc_write_clock_source(&LED_TC,TC_CLKSEL_DIV1_gc);
-	tc_set_direction(&LED_TC, TC_UP);
 	tc_set_wgm(&LED_TC, TC_WG_SS);
-	tc_write_period(&LED_TC,32);
-	tc_write_cc(&LED_TC, LED_TC_CC, led_pwm[0]);
-	tc_enable_cc_channels(&LED_TC, LED_TC_CC);
+	tc_write_period(&LED_TC, 65535); // 50�s reset pulse (min.)
+	//tc_write_clock_source(&LED_TC,TC_CLKSEL_DIV1_gc);
+	tc_write_cc(&LED_TC, LED_TC_CC, led_pwm[1]);
+	tc_enable_cc_channels(&LED_TC, LED_TC_CCEN);
 	
 	sysclk_enable_module(SYSCLK_PORT_GEN, SYSCLK_EVSYS);
-	LED_TC.CTRLD = TC_EVACT_RESTART_gc && LED_DATA_EVCH;
-	
+
+	LED_TC.CTRLD = TC_EVACT_RESTART_gc | LED_CLK_EVCH;
+
 	LED_CLK_EVCH_MUX = LED_XCLK_EVMUX;
+	LED_CLK_EVCH_CFG |= EVSYS_DIGFILT_2SAMPLES_gc;	
 	LED_DATA_EVCH_MUX = LED_XTX_EVMUX;
+	LED_DATA_EVCH_CFG |= EVSYS_DIGFILT_1SAMPLE_gc;	
 	
 	dma_ws281x();	
+	/**
+	 * DMA-Operation for WS2812
+	 * 
+	 * Due to the fact that the CPU has absolute priority for I/O-Operation, DMA-Transactions
+	 * are subjected to a significant delay (up to ~36 cycles).
+	 * In order to compensate for that, and still be able to maintain 1 MHz (25% overclock) bitrate:
+	 *  - CPU is clocked at 48 MHz instead of max. 32 MHz (out of spec. operation)
+	 *  - DMA is triggered immediately after a bit-change (UART DATA-Line)
+	 *  - DMA writes to the buffered timer register (loaded on start of the timer, otherwise the timer sometimes won't restart properly)
+	 *  - Timer is started as late as possible (falling edge of clock + event-delay), where the data-pin actually could change it's state
+	 *    This is no problem, because the the DMA is not fast enough to write the new data too soon (min. transfer-delay is bigger, ~11 cycles incl. event-routing).
+	 */
 }
 
 static void dma_ws281x(void)
@@ -376,25 +435,27 @@ static void dma_ws281x(void)
 	
 	memset(&dmach_conf_led, 0, sizeof(dmach_conf_led));
 
-	dma_channel_set_burst_length		(&dmach_conf_led, DMA_CH_BURSTLEN_1BYTE_gc);
-	dma_channel_set_transfer_count		(&dmach_conf_led, 2);
+	dma_channel_set_burst_length		(&dmach_conf_led, DMA_CH_BURSTLEN_2BYTE_gc);
+	dma_channel_set_transfer_count		(&dmach_conf_led, 4);
+	dma_channel_set_repeats				(&dmach_conf_led, 0);
 
-	dma_channel_set_src_reload_mode		(&dmach_conf_led, DMA_CH_SRCRELOAD_TRANSACTION_gc);
+	dma_channel_set_src_reload_mode		(&dmach_conf_led, DMA_CH_SRCRELOAD_BLOCK_gc);
 	dma_channel_set_src_dir_mode		(&dmach_conf_led, DMA_CH_SRCDIR_INC_gc);
-	dma_channel_set_source_address		(&dmach_conf_led, (uint16_t)(uintptr_t)led_pwm);
+	dma_channel_set_source_address		(&dmach_conf_led, (uint16_t)led_pwm);
 
-	dma_channel_set_dest_reload_mode	(&dmach_conf_led, DMA_CH_DESTRELOAD_NONE_gc);
-	dma_channel_set_dest_dir_mode		(&dmach_conf_led, DMA_CH_DESTDIR_FIXED_gc);
-	dma_channel_set_destination_address	(&dmach_conf_led, (uint16_t)(uintptr_t)(&LED_TC_CC));
+	dma_channel_set_dest_reload_mode	(&dmach_conf_led, DMA_CH_DESTRELOAD_BURST_gc);
+	dma_channel_set_dest_dir_mode		(&dmach_conf_led, DMA_CH_DESTDIR_INC_gc);
+	dma_channel_set_destination_address	(&dmach_conf_led, (uint16_t)&LED_TC_CC_REG);
 
 	dma_channel_set_trigger_source		(&dmach_conf_led, LED_TRIG_DATA);
 	dma_channel_set_single_shot			(&dmach_conf_led);
 	
-	dma_channel_write_config(DMA_CHANNEL_LED_PWM, &dmach_conf_led);
-	
 	dma_enable();
 	
-
+	dma_channel_write_config(DMA_CHANNEL_LED_TIMER, &dmach_conf_led);
+	
+	dma_channel_enable(DMA_CHANNEL_LED_TIMER);
+	dma_set_priority_mode(DMA_PRIMODE_CH01RR23_gc);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -443,10 +504,10 @@ static void dma_init(void)
 	dma_channel_set_trigger_source		(&dmach_conf_multi, LED_USART_DMA_TRIG_DRE);
 	dma_channel_set_single_shot			(&dmach_conf_multi);
 	
-	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_MED);
+	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_LO);
 	
 	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) SPI_DMA_int);
-	dma_enable();
+	//dma_enable();
 }
 
 void dma_update_count(void)
