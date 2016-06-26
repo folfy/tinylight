@@ -164,7 +164,7 @@ uint_fast16_t frame_time;
 void handle_auto_modes(void)
 {
 	static uint_fast32_t time1=0;
-	if(rtc_get_time()>=time1)
+	if((rtc_get_time()>=time1)&&(set.mode&STATE_ON))
 	{
 		time1=rtc_get_time()+frame_time;
 		switch (set.mode)
@@ -310,6 +310,7 @@ static void SPI_DMA_int(dma_callback_t state)
 	tc_write_clock_source(&SPI_TIMER,TC_CLKSEL_DIV64_gc);
 	if(update_gamma||(set.oversample&&set.gamma&&(set.mode&STATE_ON)))
 	{
+		update_gamma=false;
 		update_frame=true;
 		gamma_map();
 		run=(run+1)&ms_mask;
@@ -400,7 +401,7 @@ static void init_ws281x(void)
 	// Setup modulating timer
 	tc_enable(&LED_TC);
 	tc_set_wgm(&LED_TC, TC_WG_SS);
-	tc_write_period(&LED_TC, 65535); // 50ï¿½s reset pulse (min.)
+	tc_write_period(&LED_TC, 65535); // 50µs reset pulse (min.)
 	//tc_write_clock_source(&LED_TC,TC_CLKSEL_DIV1_gc);
 	tc_write_cc(&LED_TC, LED_TC_CC, led_pwm[1]);
 	tc_enable_cc_channels(&LED_TC, LED_TC_CCEN);

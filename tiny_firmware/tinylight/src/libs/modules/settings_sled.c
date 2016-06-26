@@ -229,19 +229,23 @@ static void button_update(Bool key_long)
 		switch (button_mode) {
 			case BUTTON_DEFAULT: 
 				if (key_long) {
-					button_mode=BUTTON_MODE_SEL;
+					button_mode_set(BUTTON_MODE_SEL);
 				} else {
 					mode_update(MODE_SLEEP);
 				} 
 				break;
 			case BUTTON_MODE_SEL:
-				//Change Mode
-				switch(set.mode)
-				{
-					case MODE_MOODLAMP:		button_mode_set(MODE_RAINBOW); break;
-					case MODE_RAINBOW:		button_mode_set(MODE_COLORSWIRL); break;
-					//case mode_colorswirl:	button_mode_set(MODE_MOODLAMP); break;
-					default:				button_mode_set(MODE_MOODLAMP); break;
+				if (key_long) {
+					button_mode_set(BUTTON_DEFAULT);
+				} else {
+					//Change Mode
+					switch(set.mode)
+					{
+						case MODE_MOODLAMP:		mode_update(MODE_RAINBOW); break;
+						case MODE_RAINBOW:		mode_update(MODE_COLORSWIRL); break;
+						//case mode_colorswirl:	mode_update(MODE_MOODLAMP); break;
+						default:				mode_update(MODE_MOODLAMP); break;
+					}
 				}
 				break;
 			default: break;
