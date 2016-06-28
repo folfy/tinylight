@@ -3,6 +3,40 @@
  *
  * \brief User board definition template
  *
+ * I/O Pins:
+ *	PA1:	A_IN:		Light Sensor
+ *	PA5:	D_OUT:		Power Mosfet
+ *	PA6:	A_IN:		Current-Sensor +
+ *	PA7:	A_IN:		Current-Sensor -
+ *	PB1:	D_OUT:		IR_enable
+ *	PB2:	D_IN:		IR-In
+ *	PB3:	A_IN:		+5V-Sensor
+ *	PC1:	D_OUT:		XCK-Led Stripe
+ *	PC3:	D_OUT:		TX-Led Stripe
+ *	PD0:	D_OUT:		Led blue
+ *	PD1:	D_OUT:		Led green
+ *	PD2:	D_OUT:		Led red
+ *	PD3:	D_IN:		USB VBus Detection
+ *	PD6:	D_INOUT:	USB Data -
+ *	PD7:	D_INOUT:	USB Data +
+ *  PE1:    D_OUT:      LED Data - clock (WS2811/WS2812)
+ *  PE3:    D_OUT:      LED Data - data  (WS2811/WS2812)
+ *	PR3:	D_IN:		Pushbutton
+ *
+ * Timer/counter units:
+ *  TCC0:   LED (WS2811/WS2812)
+ *  TCC1:	IR
+ *	TCD0:	PWM Status LED
+ *	TCD1:	DMA-Wait
+ *
+ * Event channels:
+ *  EVCH0:  ADC
+ *  EVCH1:  LED_CLK			(CLK, Falling edge)
+ *  EVCH2:  LED_DATA		(DATA, both edges)
+ *
+ * DMA channels:
+ *  DMACH0:	LED Timer
+ *  DMACH1: LED Data
  */
 
  /* This file is intended to contain definitions and configuration details for
@@ -16,15 +50,17 @@
 
 #include <conf_board.h>
 
-#define BOARD_REV 0x10			//rev 0x01 = debug board
-/*	uncomment definition to enable additional hardware modules	*/
+//#define BOARD_REV 0x01			//prototype / debug board
+//#define BOARD_REV 0x10			//first release
+#define BOARD_REV 0x11			//reduced LED pull-up resistor value
+/*	uncomment definition to select expected (wireless) module on expansion header	*/
 #define RF_avail 1  			//RF-Transceiver
 //#define RF_avail 2  			//BT-Transceiver
 //#define RF_avail 3  			//Debug Output (remove RF module first!)
 //#define UART_avail			//UART-Port
 #define DEBUG					//enables reset to bootloader via button
 
-#define SOFTWARE_REV			0x03
+#define SOFTWARE_REV			0x04
 #define RTC_TIME				0.02	//20ms
 #define BUFFER_SIZE				160
 
@@ -35,18 +71,29 @@
 #error "BOARD_REV undefined"
 #endif
 
-#define DMA_CHANNEL_LED			0
+#define DMA_CHANNEL_LED_TIMER	0
+#define DMA_CHANNEL_LED			1
 #define SLED_TIMER				TCD0
 #define SPI_TIMER				TCD1
-#define IR_TIMER				TCC0
+#define IR_TIMER				TCC1
 #define ADC						ADCA
-#define ADC_EVCH				0
-#define ADC_EVCH_MUX			EVSYS_CH0MUX
+
+#define ADC_EVCH				4
+#define ADC_EVCH_MUX			EVSYS_CH4MUX
+
+#define LED_DATA_EVCH_MUX		EVSYS_CH1MUX
+#define LED_DATA_EVCH_CFG		EVSYS_CH1CTRL
+#define LED_TRIG_DATA			DMA_CH_TRIGSRC_EVSYS_CH1_gc
+
+
+#define LED_CLK_EVCH_MUX		EVSYS_CH0MUX
+#define LED_CLK_EVCH_CFG		EVSYS_CH0CTRL
+#define LED_CLK_EVCH			TC_EVSEL_CH0_gc
 
 //////////////////////////////////////////////////////////////////////////
 /* Sens_Light */
 
-#if		BOARD_REV == 0x10
+#if		BOARD_REV >= 0x10
 #define Sens_Light_en			IOPORT_CREATE_PIN(PORTA,3)
 #define Sens_Light				IOPORT_CREATE_PIN(PORTA,4)
 #define ADCCH_POS_PIN_Light		ADCCH_POS_PIN4
@@ -77,25 +124,53 @@
 //////////////////////////////////////////////////////////////////////////
 /* LED_USART */
 
+#define LED_WS281X 1
+
 #define	LED_CLK					IOPORT_CREATE_PIN(PORTC,1)
 #define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
 
+#if		LED_WS281X==1
+#if		BOARD_REV < 0x11
+#warning "For old bords: WS281x requires strong pullup (short LED_CLK and LED_DATA)!"
+#endif
+#define	LED_XCLK				IOPORT_CREATE_PIN(PORTE,1)
+#define LED_XRX					IOPORT_CREATE_PIN(PORTE,2)
+#define	LED_XTX					IOPORT_CREATE_PIN(PORTE,3)
+#define LED_XCLK_EVMUX			EVSYS_CHMUX_PORTE_PIN1_gc
+#define LED_XTX_EVMUX			EVSYS_CHMUX_PORTE_PIN3_gc
+
+#define LED_TC					TCC0
+#define LED_TC_CC_REG			TCC0_CCBBUF
+#define LED_TC_CC				TC_CCB
+#define LED_TC_CCEN				TC_CCBEN
+
+#define LED_USART				USARTE0
+#define LED_USART_DATA			USARTE0_DATA
+#define LED_USART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTE0_DRE_gc
+#else
 #define LED_USART				USARTC0
 #define LED_USART_DATA			USARTC0_DATA
 #define LED_USART_DMA_TRIG_DRE	DMA_CH_TRIGSRC_USARTC0_DRE_gc
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 /* RF Module */
 
-#if		RF_avail==1
-#define RF_CE					IOPORT_CREATE_PIN(PORTC,0)
-#define RF_CSN					IOPORT_CREATE_PIN(PORTC,2)
-#define RF_IRQ					IOPORT_CREATE_PIN(PORTC,4)
-#define RF_MOSI					IOPORT_CREATE_PIN(PORTC,5)
-#define RF_MISO					IOPORT_CREATE_PIN(PORTC,6)
-#define RF_SCK					IOPORT_CREATE_PIN(PORTC,7)
+#if		RF_avail == 1
+#define NRF_CE					IOPORT_CREATE_PIN(PORTC,0)
+#define NRF_CSN					IOPORT_CREATE_PIN(PORTC,2)
+#define NRF_IRQ					IOPORT_CREATE_PIN(PORTC,4)
+#define NRF_MOSI				IOPORT_CREATE_PIN(PORTC,5)
+#define NRF_MISO				IOPORT_CREATE_PIN(PORTC,6)
+#define NRF_SCK					IOPORT_CREATE_PIN(PORTC,7)
+#define NRF_USART				&USARTC1
+#define NRF_INTMSK				PORTC_INT0MASK
+#define NRF_INTCTRL				PORTC_INTCTRL
+#define NRF_INTLVL				PORT_INT0LVL_LO_gc
+#define NRF_INT_vect			PORTC_INT0_vect
+#define NRF_IRQ_bm				PIN4_bm
 
-#elif	RF_avail==2
+#elif	RF_avail == 2
 #define BT_EN					IOPORT_CREATE_PIN(PORTC,0)
 #define BT_RX					IOPORT_CREATE_PIN(PORTC,6)
 #define BT_TX					IOPORT_CREATE_PIN(PORTC,7)
@@ -104,7 +179,8 @@
 #define BT_USART_INT_LVL		USART_INT_LVL_LO
 #define BT_USART_RX_vect		USARTC1_RXC_vect
 
-#elif	RF_avail==3
+#elif	RF_avail == 3
+#warning "Debug Output on RF-Header enabled!"
 #define set_P3					asm volatile ("sbi 0x11,0");
 #define	clr_P3					asm volatile ("cbi 0x11,0");
 #define set_P4					asm volatile ("sbi 0x11,2");
@@ -149,7 +225,7 @@
 //////////////////////////////////////////////////////////////////////////
 /* Button, UART */
 
-#if		BOARD_REV == 0x10
+#if		BOARD_REV >= 0x10
 #define BUTTON					IOPORT_CREATE_PIN(PORTR,0)
 #elif	BOARD_REV == 0x01
 #define BUTTON					IOPORT_CREATE_PIN(PORTE,3)

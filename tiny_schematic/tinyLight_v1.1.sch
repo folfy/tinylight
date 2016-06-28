@@ -9608,7 +9608,7 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 <part name="GND13" library="supply1" deviceset="GND" device=""/>
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
 <part name="GND15" library="supply1" deviceset="GND" device=""/>
-<part name="R6" library="rcl" deviceset="R-EU_" device="M2012" value="1.5k"/>
+<part name="R6" library="rcl" deviceset="R-EU_" device="M2012" value="5.6k"/>
 <part name="C7" library="rcl" deviceset="C-EU" device="C2012" value="100nF"/>
 <part name="FRAME1" library="frames" deviceset="DINA4_L" device=""/>
 <part name="P+7" library="tinyLight" deviceset="VBUS" device=""/>

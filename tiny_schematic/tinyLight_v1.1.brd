@@ -5299,7 +5299,7 @@ design rules under a new name.</description>
 <element name="R12" library="rcl" package="M2012" value="1M" x="48.5" y="22.4" rot="R270"/>
 <element name="C8" library="rcl" package="C2012" value="100nF" x="45.9" y="20.3" rot="R90"/>
 <element name="R4" library="rcl" package="M2012" value="5.6k" x="17.6" y="32.1"/>
-<element name="R6" library="rcl" package="M2012" value="1.5k" x="19.1" y="23.2" rot="R180"/>
+<element name="R6" library="rcl" package="M2012" value="5.6k" x="19.1" y="23.2" rot="R180"/>
 <element name="C7" library="rcl" package="C2012" value="100nF" x="24.1" y="22.5" rot="R90"/>
 <element name="S1" library="tinyLight" package="LSH_6X6" value="SPST_PB" x="48.4" y="27.5" rot="R270"/>
 <element name="C9" library="rcl" package="C2012" value="100nF" x="20.55" y="14.3"/>

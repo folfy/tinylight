@@ -229,19 +229,23 @@ static void button_update(Bool key_long)
 		switch (button_mode) {
 			case BUTTON_DEFAULT: 
 				if (key_long) {
-					button_mode=BUTTON_MODE_SEL;
+					button_mode_set(BUTTON_MODE_SEL);
 				} else {
 					mode_update(MODE_SLEEP);
 				} 
 				break;
 			case BUTTON_MODE_SEL:
-				//Change Mode
-				switch(set.mode)
-				{
-					case MODE_MOODLAMP:		button_mode_set(MODE_RAINBOW); break;
-					case MODE_RAINBOW:		button_mode_set(MODE_COLORSWIRL); break;
-					//case mode_colorswirl:	button_mode_set(MODE_MOODLAMP); break;
-					default:				button_mode_set(MODE_MOODLAMP); break;
+				if (key_long) {
+					button_mode_set(BUTTON_DEFAULT);
+				} else {
+					//Change Mode
+					switch(set.mode)
+					{
+						case MODE_MOODLAMP:		mode_update(MODE_RAINBOW); break;
+						case MODE_RAINBOW:		mode_update(MODE_COLORSWIRL); break;
+						//case mode_colorswirl:	mode_update(MODE_MOODLAMP); break;
+						default:				mode_update(MODE_MOODLAMP); break;
+					}
 				}
 				break;
 			default: break;
@@ -283,8 +287,6 @@ void sled_init(void)
 	tc_enable_cc_channels(&SLED_TIMER,SLED_TC_CCEN_B|SLED_TC_CCEN_G);
 }
 
-static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue, bool blinking);
-
 void sled_update(void)
 {
 
@@ -315,7 +317,9 @@ void sled_update(void)
 
 static inline void sled_ch_set(enum tc_cc_channel_mask_enable_t TC_CCEN, enum tc_cc_channel_t TC_CC, uint_fast8_t value);
 
-static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue, bool blinking)
+volatile uint8_t val_r, val_g, val_b;
+
+ void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue, bool blinking)
 {
 	if (blinking) {
 		blink_state = true;
@@ -326,6 +330,9 @@ static void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue, bo
 	sled_ch_set(SLED_TC_CCEN_R, SLED_TC_CC_R, red);
 	sled_ch_set(SLED_TC_CCEN_G, SLED_TC_CC_G, green);
 	sled_ch_set(SLED_TC_CCEN_B, SLED_TC_CC_B, blue);
+	val_r = red;
+	val_g = green;
+	val_b = blue;
 }
 
 static inline void sled_ch_set(enum tc_cc_channel_mask_enable_t TC_CCEN, enum tc_cc_channel_t TC_CC, uint_fast8_t value)
@@ -355,9 +362,11 @@ static void sled_blink(void) //Error blinking
 {
 	blink_state ^= true;
 	if(blink_state) {
-		tc_enable_cc_channels(&SLED_TIMER,	SLED_TC_CCEN_R | SLED_TC_CCEN_G | SLED_TC_CCEN_B);
+			sled_ch_set(SLED_TC_CCEN_R, SLED_TC_CC_R, val_r);
+			sled_ch_set(SLED_TC_CCEN_G, SLED_TC_CC_G, val_g);
+			sled_ch_set(SLED_TC_CCEN_B, SLED_TC_CC_B, val_b);
 		} else {
-		tc_disable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_R | SLED_TC_CCEN_G | SLED_TC_CCEN_B);
+			tc_disable_cc_channels(&SLED_TIMER, SLED_TC_CCEN_R | SLED_TC_CCEN_G | SLED_TC_CCEN_B);
 	}
 }
 
