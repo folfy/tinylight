@@ -9,6 +9,8 @@
 #ifndef SETTINGS_SLED_H_
 #define SETTINGS_SLED_H_
 
+#include "libs/protocol/tiny_protocol.h"
+
 /* EEPROM */
 void read_settings(void);
 void save_settings(void);
@@ -36,6 +38,7 @@ void rtc_button(uint32_t time);
 /* SLED */
 void sled_init(void);
 void sled_update(void);
+void sled_set(uint_fast8_t red, uint_fast8_t green, uint_fast8_t blue, bool blinking);
 void status_led_off(void);
 void rtc_sled(void);
 

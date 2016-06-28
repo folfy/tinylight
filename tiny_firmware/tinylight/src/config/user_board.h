@@ -130,7 +130,6 @@
 #define	LED_TX					IOPORT_CREATE_PIN(PORTC,3)
 
 #if		LED_WS281X==1
-#warning "Operation with WS281x requires Jumper on UART header (RX<->TX)"
 #if		BOARD_REV < 0x11
 #warning "For old bords: WS281x requires strong pullup (short LED_CLK and LED_DATA)!"
 #endif
@@ -181,6 +180,7 @@
 #define BT_USART_RX_vect		USARTC1_RXC_vect
 
 #elif	RF_avail == 3
+#warning "Debug Output on RF-Header enabled!"
 #define set_P3					asm volatile ("sbi 0x11,0");
 #define	clr_P3					asm volatile ("cbi 0x11,0");
 #define set_P4					asm volatile ("sbi 0x11,2");

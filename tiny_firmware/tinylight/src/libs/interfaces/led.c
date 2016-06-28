@@ -363,10 +363,16 @@ void led_init(void)
 	tc_enable(&SPI_TIMER);
 	tc_set_overflow_interrupt_level(&SPI_TIMER, TC_INT_LVL_MED);
 	//TODO: Take clock into account; change for WS281x; move to CC of long RTC?
-	tc_write_period(&SPI_TIMER, 1000/2);
+	#if LED_WS281X==1
+		tc_write_period(&SPI_TIMER, (uint16_t)(sysclk_get_per_hz()/64*0.0001)); //prescaler=64, time=0.1ms
+	#else
+		tc_write_period(&SPI_TIMER, (uint16_t)(sysclk_get_per_hz()/64*0.001)); //prescaler=64, time=1ms
+	#endif
 	tc_set_overflow_interrupt_callback(&SPI_TIMER, SPI_TIMER_OVF_int);
 	
 	//TODO: brownout-detection  DAC / Comperator
+	
+	dma_enable();
 	
 	#if LED_WS281X==1
 		init_ws281x();
@@ -377,6 +383,8 @@ void led_init(void)
 
 //////////////////////////////////////////////////////////////////////////
 /* WS281X */
+
+#if LED_WS281X==1
 
 static void dma_ws281x(void);
 
@@ -451,13 +459,13 @@ static void dma_ws281x(void)
 	dma_channel_set_trigger_source		(&dmach_conf_led, LED_TRIG_DATA);
 	dma_channel_set_single_shot			(&dmach_conf_led);
 	
-	dma_enable();
-	
 	dma_channel_write_config(DMA_CHANNEL_LED_TIMER, &dmach_conf_led);
 	
 	dma_channel_enable(DMA_CHANNEL_LED_TIMER);
 	dma_set_priority_mode(DMA_PRIMODE_CH01RR23_gc);
 }
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 /* DMA */
@@ -508,7 +516,6 @@ static void dma_init(void)
 	dma_channel_set_interrupt_level		(&dmach_conf_multi, DMA_INT_LVL_LO);
 	
 	dma_set_callback(DMA_CHANNEL_LED,(dma_callback_t) SPI_DMA_int);
-	//dma_enable();
 }
 
 void dma_update_count(void)
