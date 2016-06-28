@@ -68,10 +68,10 @@ enum usb_state_t {
 };
 
 //TODO: make protocol handler, semaphore
-enum usb_state_t usb_state=USB_STATE_IDLE;
-uint_fast8_t rx_lim=3;
-uint_fast16_t buffer_pos=0;
-uint_fast32_t usb_rx_time=0;
+static enum usb_state_t usb_state=USB_STATE_IDLE;
+static uint_fast8_t rx_lim=3;
+static uint_fast16_t buffer_pos=0;
+static uint_fast32_t usb_rx_time=0;
 
 void handle_usb(void)
 {

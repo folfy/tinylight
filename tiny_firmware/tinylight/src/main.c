@@ -31,15 +31,22 @@
 #include "libs/interfaces/led.h"
 #include "libs/interfaces/usb.h"
 #include "libs/interfaces/IR.h"
+#include "libs/interfaces/RF.h"
 #include "libs/modules/settings_sled.h"
 #include "libs/modules/sleep_adc.h"
 
-#if	RF_avail==2
+#if RF_avail==1
+	#include "libs/interfaces/nrf24/nrf24.h"
+	#include "libs/interfaces/nrf24/nrf24_def.h"
+#elif RF_avail==2
 	#include "BT.h"
 #endif
 
 //Button, Status_LED, FPS count
 static void RTC_Alarm(uint32_t time);
+
+uint8_t nrf_tx(uint8_t data[]);
+void nrf_rx(void);
 
 int main (void)
 {
@@ -73,7 +80,9 @@ int main (void)
 	usb_init();
 
 	IR_init();
-	#if	RF_avail==2
+	#if RF_avail==1
+		rf_init();
+	#elif RF_avail==2
 		BT_init();
 	#endif
 	
@@ -85,7 +94,9 @@ int main (void)
 		#ifdef DEBUG
 		uint32_t time=rtc_get_time();
 		#endif
-			
+		
+		nrf_rx();
+		//handle_rf();
 		handle_usb();
 		handle_auto_modes();
 		
@@ -96,6 +107,56 @@ int main (void)
 		//TODO: add rms calc -> main
 	}
 }
+
+#if RF_avail==1
+/*
+ * Send data via NRF module
+ * parameter: data as uint8[]
+ * returns: nrf_status as byte
+ */
+uint8_t nrf_tx(uint8_t data[])
+{
+	// send data
+	nrf24_mode_tx();
+	nrf24_data_put(data, 1);
+
+	// wait till data has been sent
+	uint8_t nrf_status;
+	while( !(nrf_status=nrf24_status() & (NRF_STATUS_MAX_RT | NRF_STATUS_TX_DS)) );
+
+	// check status, clear flash, and flush tx FIFO in case of an transmission error
+	if (nrf_status & NRF_STATUS_TX_DS) {
+		nrf24_reg_write(NRF_REG_STATUS, NRF_STATUS_TX_DS);
+	} else if (nrf_status & NRF_STATUS_MAX_RT) {
+		nrf24_flush_tx();
+		nrf24_reg_write(NRF_REG_STATUS, NRF_STATUS_MAX_RT);
+	}
+	return nrf_status;
+}
+	
+/*
+* Receive data via NRF module (non-blocking)
+*/
+void nrf_rx()
+{
+	// receive data
+	nrf24_mode_rx();
+
+	static Bool once=true;
+	if ( nrf24_data_avail() & once ) {
+		sled_set(0,10,0,true);
+		uint8_t size;
+		udi_cdc_putc(0x00);
+		nrf24_read(NRF_CMD_RX_WIDTH, 1, &size);
+		udi_cdc_putc(size);
+		//uint8_t data[32];
+		//nrf24_data_get(data);
+		//udi_cdc_write_buf(data, size);
+		//sled_update();
+		once=false;
+	}
+}
+#endif
 
 //Button, Status_LED, FPS count
 static void RTC_Alarm(uint32_t time)
